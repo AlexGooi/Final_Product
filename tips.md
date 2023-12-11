@@ -1,0 +1,12 @@
+# Tips
+- use venv:
+    - python3 -m venv venv
+    - source [dir]/venv/bin/activate
+    - pip install -r requirements.txt
+- place classes in seperate files:
+    - clean imports only off classes that you use
+    - keeps venv clean
+- add function input typing (makes debugging much easier)
+- writing: classes are cased like SimManager, functions like sim_manager
+- a lot of unused variables: total, total_distributed. Or use self.total so you can re-use, or use debugger to check code and remove unused variables
+- add doc-strings everywhere. If you use a class in VS Code your written doc-string will appear and VS Code can help assist better
