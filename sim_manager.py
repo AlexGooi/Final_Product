@@ -37,7 +37,7 @@ class SimManager:
             yieldless=True,
         )
         # Create the power supply
-        self.power_supply_o = PowerSupply(env=self.env_sim, max_power_from_grid=30,power_consumption_trend=self.power_consumption_trend)
+        self.power_supply_o = PowerSupply(env=self.env_sim, max_power_from_grid=30000,power_consumption_trend=self.power_consumption_trend)
 
         # Create the waiting room
         self.waiting_room = sim.Queue(name="waitingline88", monitor=False)
@@ -186,8 +186,7 @@ class SimManager:
             max_diff = 0
             min_dif = 0     
         #Return the calculated data
-        return avg_tot,min_tot,max_tot,max_diff,min_dif,avg
-    
+        return avg_tot,min_tot,max_tot,max_diff,min_dif,avg   
 
     #This metohd detects which charging poles are being used
     def __get_pole_data__(self):
@@ -205,7 +204,6 @@ class SimManager:
         total_charge_request = 0
         #loop through the waiting line
         if len(self.waiting_room) != 0:
-            print(len(self.waiting_room))
             for i in self.waiting_room:
                 total_charge_request += (100 - i.battery_charge)
         return total_charge_request

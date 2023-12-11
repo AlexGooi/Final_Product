@@ -23,14 +23,16 @@ class Train_Class(Env):
         'obs1': Box(low=0, high=500, shape=(1,), dtype=np.float32),
         #Avarage time for the whole operation
         'obs2': Box(low=0,high=600,shape=(1,),dtype= np.float32), 
+        #Total amount of charging request in the waiting line
+        'obs3': Box(low=0,high= 10000,shape=(1,),dtype=np.float32),
         #Poles that are current;y in use
-        'obs3': MultiBinary(amount_of_poles)
+        'obs4': MultiBinary(amount_of_poles)
         })       
         #Init the state of the enviroment
         self.state = 0
         self.done = False
         self.running = False
-        self.man = SimManager(amount_of_poles, 1400,spread_type=3)
+        self.man = SimManager(amount_of_poles, 1400,spread_type=5)
         self.man.run_sim()
         self.amount_of_poles = amount_of_poles
         #Create a dummy list of booleans (used for the reset function)
@@ -47,7 +49,7 @@ class Train_Class(Env):
         info = {}      
         #Scale the action into the amount of energy given to each charging pole
         for i in range(self.amount_of_poles):
-            self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,0.01,40))
+            self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,400,800))
         #Run 1 step of the simmulation
         done, rl_data = self.man.rl_Run(self.action_scaled)    
     
@@ -64,7 +66,7 @@ class Train_Class(Env):
         print(rl_data['avg_wait'])
         #return_list = [np.float32(rl_data['avg_wait']), np.float32(rl_data['avg_tot']),rl_data['pole_data']]
 
-        observation  = {'obs1':np.float32(rl_data['avg_wait']), 'obs2': np.float32(rl_data['avg_tot']), 'obs3': rl_data['pole_data']}
+        observation  = {'obs1':np.float32(rl_data['avg_wait']), 'obs2': np.float32(rl_data['avg_tot']),'obs3':np.float32(rl_data['Charge_Request']), 'obs4': rl_data['pole_data']}
         return observation, reward, done, False, info
 
     def render(self):
@@ -76,11 +78,11 @@ class Train_Class(Env):
         super().reset(seed=seed)
         # Reset the simmulation enviroment
         info = {}
-        observation  = {'obs1':np.float32(0), 'obs2': np.float32(0), 'obs3': self.dummy}
+        observation  = {'obs1':np.float32(0), 'obs2': np.float32(0), 'obs3' :np.float32(0),'obs4': self.dummy}
         return observation, info
     
 #Create the reinfrocement learning model
-rl_env = Train_Class(amount_of_poles=2)
+rl_env = Train_Class(amount_of_poles=3)
 log_path = os.path.join('.','logs')
 model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path)
 
