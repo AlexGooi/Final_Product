@@ -44,6 +44,7 @@ class Prepare:
                     total_time=0,
                     total_wait_Time=0,
                 )
+            #When this spread is chosen the waiting time before charging should avarge arround 4.8 mintes (used for checks)
             elif spread_type == 3:
                 arrival, service_time = self.poison()
                 self.avg_wait_time.append(service_time)
@@ -68,6 +69,19 @@ class Prepare:
                     total_wait_time=0, 
                     desired_wait_time=0        
                 )
+            #Poison with a larger charging time 
+            elif spread_type == 5:
+                arrival, service_time = self.poison()
+                self.avg_wait_time.append(service_time)
+                
+                service_invert = 100.0 - random.randint(10, 50)
+                truck_data = Truck(
+                    battery=service_invert,
+                    arrival_time=time,
+                    total_time=0,
+                    total_wait_time=0,
+                    desired_wait_time=0
+                )           
             # Append the data to the list
             self.trucks.append(truck_data)
 

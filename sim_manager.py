@@ -14,7 +14,7 @@ class SimManager:
         self.charging_stations = charging_stations
 
         # Prepare the truck data
-        self.shedual.prepare_data(spread_type=3)
+        self.shedual.prepare_data(spread_type=spread_type)
         self.total_time = total_time
 
         # Create varaibles for monitoring
@@ -50,7 +50,7 @@ class SimManager:
                 waiting_room=self.waiting_room,
                 env=self.env_sim,
                 power_supply=self.power_supply_o,
-                max_power_delivery=20,
+                max_power_delivery=200000,
                 diffrence_desired= self.difference_times
             )
             for _ in range(self.charging_stations)
@@ -188,9 +188,6 @@ class SimManager:
         #Return the calculated data
         return avg_tot,min_tot,max_tot,max_diff,min_dif,avg
     
-    #This method extracts data from the waiting line
-    def __get_waitingline_data__(self):
-        print(self.waiting_room[0].desired_waiting_)
 
     #This metohd detects which charging poles are being used
     def __get_pole_data__(self):
@@ -203,11 +200,22 @@ class SimManager:
                 self.poles_active[i] = True
             i +=1
 
+    #This method gets the data from the waiting line
+    def __get_wait_line_data__(self):
+        total_charge_request = 0
+        #loop through the waiting line
+        if len(self.waiting_room) != 0:
+            print(len(self.waiting_room))
+            for i in self.waiting_room:
+                total_charge_request += (100 - i.battery_charge)
+        return total_charge_request
+
     #This method is used to combine all the data from the simmulation 
     def __get_env_Data__(self):
         #Call the all the getter methods
         wait_data = self.__get_waiting_data__()
         self.__get_pole_data__()
+        total_charge_request = self.__get_wait_line_data__()
         #Create a dictonary with all the data that commes from the dsimmulation
         sim_values={
             'avg_tot': wait_data[0], 
@@ -216,7 +224,8 @@ class SimManager:
             'max_diff': wait_data[3],
             'min_diff': wait_data[4],
             'avg_wait': wait_data[5],
-            'pole_data': self.poles_active
+            'pole_data': self.poles_active, 
+            'Charge_Request' : total_charge_request            
         }
         #Return the dictonary
         return sim_values

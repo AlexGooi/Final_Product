@@ -1,5 +1,5 @@
 from gymnasium import Env
-from gymnasium.spaces import Discrete, Box
+from gymnasium.spaces import Discrete, Box,Dict,MultiBinary
 import numpy as np
 import os
 from stable_baselines3 import PPO
@@ -15,46 +15,73 @@ def scale_value(input_value, input_lower, input_upper, output_lower, output_uppe
 
 
 class Train_Class(Env):
-    def __init__(self):
-        self.action_space = Box(low=-1, high=1, shape=(2,), dtype=float)
-        self.observation_space = Box(low=0, high=500, shape=(2,), dtype=np.float32)
+    def __init__(self, amount_of_poles):
+        self.action_space = Box(low=-1, high=1, shape=(amount_of_poles,), dtype=float)
+        #self.observation_space = Box(low=0, high=500, shape=(2,), dtype=np.float32)
+        self.observation_space = Dict({
+        #Avarage wait time before service
+        'obs1': Box(low=0, high=500, shape=(1,), dtype=np.float32),
+        #Avarage time for the whole operation
+        'obs2': Box(low=0,high=600,shape=(1,),dtype= np.float32), 
+        #Poles that are current;y in use
+        'obs3': MultiBinary(amount_of_poles)
+        })       
+        #Init the state of the enviroment
         self.state = 0
         self.done = False
         self.running = False
-        self.man = SimManager(2, 1400)
+        self.man = SimManager(amount_of_poles, 1400,spread_type=3)
         self.man.run_sim()
+        self.amount_of_poles = amount_of_poles
+        #Create a dummy list of booleans (used for the reset function)
+        self.dummy = []
+        #Create a action space scaled version (later used in the step method)
+        self.action_scaled = []
+        for i in range(amount_of_poles):
+            self.dummy.append(False)
+            self.action_scaled.append(np.float32(0))
+        
 
     def step(self, action):
         reward = 0
         info = {}      
-        done,avarage,length,charge = self.man.rl_Run(action)    
-        diffrence = abs(7 - avarage)
+        #Scale the action into the amount of energy given to each charging pole
+        for i in range(self.amount_of_poles):
+            self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,0.01,40))
+        #Run 1 step of the simmulation
+        done, rl_data = self.man.rl_Run(self.action_scaled)    
+    
+        diffrence = abs(30 - rl_data['avg_tot'])
         reward = 20 - diffrence
-
+        #When the simmulation has run for a day return the values one last time and reset the env
+        
         if done:
-            wait_time = self.man.rl_reset()
-            print(wait_time[0])
-
-            diffrence = abs(7 - wait_time[0])
+            rl_data = self.man.rl_reset()
+            print(rl_data['avg_tot'])
+            diffrence = abs(30 - rl_data['avg_tot'])
             reward = 20 - diffrence
+        #Return the state of the simmulation to the rl model
+        print(rl_data['avg_wait'])
+        #return_list = [np.float32(rl_data['avg_wait']), np.float32(rl_data['avg_tot']),rl_data['pole_data']]
 
-        return_list = [np.float32(length), np.float32(charge)]
-        return return_list, reward, True, False, info
+        observation  = {'obs1':np.float32(rl_data['avg_wait']), 'obs2': np.float32(rl_data['avg_tot']), 'obs3': rl_data['pole_data']}
+        return observation, reward, done, False, info
 
     def render(self):
         #This method is required by the framework but doesn't have to do anything
         pass
 
+    #This method resets the eniroment
     def reset(self, seed=None):
         super().reset(seed=seed)
         # Reset the simmulation enviroment
-
         info = {}
-        return_list = [np.float32(0), np.float32(0)]
-        return return_list, info
-
-rl_env = Train_Class()
+        observation  = {'obs1':np.float32(0), 'obs2': np.float32(0), 'obs3': self.dummy}
+        return observation, info
+    
+#Create the reinfrocement learning model
+rl_env = Train_Class(amount_of_poles=2)
 log_path = os.path.join('.','logs')
-model = PPO('MlpPolicy', rl_env, verbose = 1, tensorboard_log = log_path)
+model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path)
 
-#model.learn(total_timesteps= 300000,progress_bar= True)
+model.learn(total_timesteps= 300000,progress_bar= True)
