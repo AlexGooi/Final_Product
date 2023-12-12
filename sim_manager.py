@@ -146,7 +146,7 @@ class SimManager:
                 #print("empty")
             temp =self.waiting_room.pop()
             temp.in_loop = False
-
+        sim_data = self.__get_env_Data__()
         #Clear all the data from the lists (to start with a clean simmulation)
         self.wait_times.clear()
         self.waiting_room.clear()
@@ -161,7 +161,7 @@ class SimManager:
         self.generator.reset()
         #Return the measured state of the enviroment
         #Get the data from the simmulation
-        sim_data = self.__get_env_Data__()
+
         return sim_data
 #-------------------------------------------------------------------------------
     #This method is used to extract the waiting times from the system
@@ -172,6 +172,7 @@ class SimManager:
         else:
             avg = 0
         #Check if there is a least 1 data point in the list, to avoid devideing by 0
+        print(sum(self.total_times),"sum")
         if len(self.total_times):
             avg_tot = sum(self.total_times) / len(self.total_times)
             min_tot = min(self.total_times)

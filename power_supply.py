@@ -21,6 +21,7 @@ class PowerSupply(sim.Component):
     def process(self):
         # Calculate the amount of energy that is currently being used
         while True:
+            #print(self.power_used_list)
             """TODO variable total is unused"""
             total = 0
             # Select the charging strategy
@@ -44,6 +45,7 @@ class PowerSupply(sim.Component):
 
         # Loop through all the power cinsumers
         total_distributed = 0
+        
         for i in self.power_used_list:
             # Calculate the max distribution left
             max_allowed = limit(
@@ -73,14 +75,17 @@ class PowerSupply(sim.Component):
     ):  # This method is used to distribute the power with the help of reinforcemnt learning
         total_distributed = 0
         counter = 0
+        #print("Lenght =", len(self.power_used_list))
         if len(self.power_used_list) != 0:
             for i in self.power_used_list:
+                
                 max_allowed = limit(
                     0,
                     self.max_power_from_grid - total_distributed,
                     self.max_power_from_grid,
                 )
                 max_allowed = limit(0, max_allowed, i.max_power_request)
+               
                 max_allowed = limit(
                     0,
                     max_allowed,
@@ -89,6 +94,7 @@ class PowerSupply(sim.Component):
                         self.max_power_from_grid - total_distributed,
                         self.max_power_from_grid - total_distributed,
                     ),
+                    
                 )
                 # Note to the system when the maximum energy consumption is reached
                 if max_allowed == 0:
@@ -96,6 +102,8 @@ class PowerSupply(sim.Component):
                 else:
                     self.max_reached = False
                 # Insert the max power consumption from the reinforcement learning model into
+                
                 i.max_power_consumption = limit(0, rl_distribution[counter], max_allowed)
+                #print(i.max_power_consumption, "Allowed")
                 total_distributed += i.max_power_consumption
                 counter += 1

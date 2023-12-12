@@ -49,10 +49,11 @@ class Train_Class(Env):
         info = {}      
         #Scale the action into the amount of energy given to each charging pole
         for i in range(self.amount_of_poles):
-            self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,400,800))
+            self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,0.00001,300))
         #Run 1 step of the simmulation
+
         done, rl_data = self.man.rl_Run(self.action_scaled)    
-    
+        print(rl_data['avg_tot'])
         diffrence = abs(30 - rl_data['avg_tot'])
         reward = 20 - diffrence
         #When the simmulation has run for a day return the values one last time and reset the env
@@ -63,7 +64,7 @@ class Train_Class(Env):
             diffrence = abs(30 - rl_data['avg_tot'])
             reward = 20 - diffrence
         #Return the state of the simmulation to the rl model
-        print(rl_data['avg_wait'])
+        #print(rl_data['avg_wait'])
         #return_list = [np.float32(rl_data['avg_wait']), np.float32(rl_data['avg_tot']),rl_data['pole_data']]
 
         observation  = {'obs1':np.float32(rl_data['avg_wait']), 'obs2': np.float32(rl_data['avg_tot']),'obs3':np.float32(rl_data['Charge_Request']), 'obs4': rl_data['pole_data']}

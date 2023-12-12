@@ -49,9 +49,11 @@ class ChargingStation(sim.Component):
         while self.vehicle.battery_charge < 100:
             #print(self.power_consumption.max_power_consumption)
             # Determine the max power delivery that the charging station is able to give
-            if self.vehicle.battery_charge < 100 - self.power_consumption.max_power_consumption:     
-                add_charge = self.power_consumption.max_power_consumption
-
+            #print(self.power_consumption)
+            if self.vehicle.battery_charge < 100 - 1:   
+                
+                add_charge = limit(0,self.power_consumption.max_power_consumption, 100 - self.vehicle.battery_charge)
+                #print(add_charge,"Add Charge")  
                 self.hold(1)
             else:
                 add_charge = limit(
@@ -71,6 +73,8 @@ class ChargingStation(sim.Component):
         #Set the total waiting time of the customber
         self.vehicle.total_time =(self.env.now() - self.vehicle.creation_time)
         #Append the total time to the loop
+        if self.vehicle.total_time < 0: 
+            print("WTFFFDF")
         self.vehicle.total_times.append(self.vehicle.total_time)
         #Append the diffrence of the actual wait time and the desired wait time     
         self.vehicle.diffrence_desired.append(self.vehicle.total_time - self.vehicle.desired_wait_time)       
