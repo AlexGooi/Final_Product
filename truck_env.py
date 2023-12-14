@@ -32,8 +32,7 @@ class Train_Class(Env):
         self.state = 0
         self.done = False
         self.running = False
-        self.man = SimManager(amount_of_poles, 1400,spread_type=5)
-        self.man.run_sim()
+        self.man = SimManager(amount_of_poles, 2400,spread_type=5)
         self.amount_of_poles = amount_of_poles
         #Create a dummy list of booleans (used for the reset function)
         self.dummy = []
@@ -49,17 +48,18 @@ class Train_Class(Env):
         info = {}      
         #Scale the action into the amount of energy given to each charging pole
         for i in range(self.amount_of_poles):
-            self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,0.00001,300))
+            self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,0.001,300))
         #Run 1 step of the simmulation
 
         done, rl_data = self.man.rl_Run(self.action_scaled)    
-        print(rl_data['avg_tot'])
+        #print(rl_data['avg_tot'])
         diffrence = abs(30 - rl_data['avg_tot'])
+        #print(diffrence)
         reward = 20 - diffrence
         #When the simmulation has run for a day return the values one last time and reset the env
         
         if done:
-            rl_data = self.man.rl_reset()
+            rl_data,temp = self.man.rl_reset()
             print(rl_data['avg_tot'])
             diffrence = abs(30 - rl_data['avg_tot'])
             reward = 20 - diffrence
@@ -68,7 +68,7 @@ class Train_Class(Env):
         #return_list = [np.float32(rl_data['avg_wait']), np.float32(rl_data['avg_tot']),rl_data['pole_data']]
 
         observation  = {'obs1':np.float32(rl_data['avg_wait']), 'obs2': np.float32(rl_data['avg_tot']),'obs3':np.float32(rl_data['Charge_Request']), 'obs4': rl_data['pole_data']}
-        return observation, reward, done, False, info
+        return observation, reward/2400, done, False, info
 
     def render(self):
         #This method is required by the framework but doesn't have to do anything
@@ -83,8 +83,8 @@ class Train_Class(Env):
         return observation, info
     
 #Create the reinfrocement learning model
-rl_env = Train_Class(amount_of_poles=3)
+rl_env = Train_Class(amount_of_poles=1)
 log_path = os.path.join('.','logs')
-model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path)
+model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,learning_rate=0.007,clip_range=0.4)
 
 model.learn(total_timesteps= 300000,progress_bar= True)

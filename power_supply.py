@@ -17,6 +17,7 @@ class PowerSupply(sim.Component):
         self.max_reached = False
         self.mode.monitor(False)
         self.status.monitor(False)
+        self.total_distributed = 0
 
     def process(self):
         # Calculate the amount of energy that is currently being used
@@ -73,7 +74,7 @@ class PowerSupply(sim.Component):
     def __distribute_power_rl(
         self, rl_distribution
     ):  # This method is used to distribute the power with the help of reinforcemnt learning
-        total_distributed = 0
+        self.total_distributed = 0
         counter = 0
         #print("Lenght =", len(self.power_used_list))
         if len(self.power_used_list) != 0:
@@ -81,7 +82,7 @@ class PowerSupply(sim.Component):
                 
                 max_allowed = limit(
                     0,
-                    self.max_power_from_grid - total_distributed,
+                    self.max_power_from_grid -  self.total_distributed,
                     self.max_power_from_grid,
                 )
                 max_allowed = limit(0, max_allowed, i.max_power_request)
@@ -91,8 +92,8 @@ class PowerSupply(sim.Component):
                     max_allowed,
                     limit(
                         0,
-                        self.max_power_from_grid - total_distributed,
-                        self.max_power_from_grid - total_distributed,
+                        self.max_power_from_grid -  self.total_distributed,
+                        self.max_power_from_grid -  self.total_distributed,
                     ),
                     
                 )
@@ -105,5 +106,5 @@ class PowerSupply(sim.Component):
                 
                 i.max_power_consumption = limit(0, rl_distribution[counter], max_allowed)
                 #print(i.max_power_consumption, "Allowed")
-                total_distributed += i.max_power_consumption
+                self.total_distributed += i.power_consumption
                 counter += 1

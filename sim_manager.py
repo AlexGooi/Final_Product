@@ -140,13 +140,26 @@ class SimManager:
         
     #This resets the current simmulation back to time 0
     def rl_reset(self):
+        length = len(self.wait_times)
+        sim_data = self.__get_env_Data__()
         self.old_time = 0
         #self.__get_waitingline_data() 
+        #Clear the charging poles
+
         while len(self.waiting_room) != 0:
                 #print("empty")
             temp =self.waiting_room.pop()
-            temp.in_loop = False
-        sim_data = self.__get_env_Data__()
+            temp.in_loop = False        
+        
+
+        for i in self.stations:
+            #Wait until 
+            found = True          
+            while found == True:
+                found = i.clear_station()
+                self.env_sim.run(till=self.env_sim.now() + 100)
+
+
         #Clear all the data from the lists (to start with a clean simmulation)
         self.wait_times.clear()
         self.waiting_room.clear()
@@ -162,7 +175,7 @@ class SimManager:
         #Return the measured state of the enviroment
         #Get the data from the simmulation
 
-        return sim_data
+        return sim_data, length
 #-------------------------------------------------------------------------------
     #This method is used to extract the waiting times from the system
     def __get_waiting_data__(self):
@@ -172,8 +185,7 @@ class SimManager:
         else:
             avg = 0
         #Check if there is a least 1 data point in the list, to avoid devideing by 0
-        print(sum(self.total_times),"sum")
-        if len(self.total_times):
+        if len(self.total_times) != 0  and len(self.wait_times) !=0:
             avg_tot = sum(self.total_times) / len(self.total_times)
             min_tot = min(self.total_times)
             max_tot = max(self.wait_times)
