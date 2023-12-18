@@ -10,8 +10,8 @@ class Truck:
     total_time: np.int16
     total_wait_time: np.int16
     desired_wait_time: np.int16
-    
-
+    desired_battery: np.int16
+    max_wait_time: np.int16
 @dataclass
 class Consumption:
     """Truck that hold charging station information"""

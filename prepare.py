@@ -74,13 +74,17 @@ class Prepare:
                 arrival, service_time = self.poison()
                 self.avg_wait_time.append(service_time)
                 
-                service_invert = 100.0 - random.randint(10, 50)
+                battery_level = 100.0 - random.randint(10, 100)
+                desired_level = random.randint(70,100)
+                max_wait_time = random.randint(150,170)
                 truck_data = Truck(
-                    battery=service_invert,
+                    battery=battery_level,
                     arrival_time=time,
                     total_time=0,
                     total_wait_time=0,
-                    desired_wait_time=0
+                    desired_wait_time=0,
+                    desired_battery= desired_level,
+                    max_wait_time = max_wait_time
                 )           
             # Append the data to the list
             self.trucks.append(truck_data)

@@ -12,6 +12,8 @@ class PowerSupply(sim.Component):
         self.distribution_rl = []
         self.power_consumption_trend = power_consumption_trend
         self.power_used = 0
+        self.Total_Used = 0
+        self.percentage_used = 0
         self.env = env
         self.strategy = 0
         self.max_reached = False
@@ -34,10 +36,13 @@ class PowerSupply(sim.Component):
                 self.__distribute_power_rl(rl_distribution=self.distribution_rl)
             # Check if the list has members
             if len(self.power_used_list) != 0:
+                self.Total_Used =0
                 # Loop through all the charging stations
                 for i in self.power_used_list:
-                    total += i.power_consumption
-                self.power_consumption_trend.append(total)
+                    self.Total_Used += i.power_consumption
+                self.power_consumption_trend.append(self.Total_Used)
+                #Get the total useage of the power supply
+                self.__calculate_usage__()
                 self.hold(1)
         print("Process_Stop")
 
@@ -86,7 +91,6 @@ class PowerSupply(sim.Component):
                     self.max_power_from_grid,
                 )
                 max_allowed = limit(0, max_allowed, i.max_power_request)
-               
                 max_allowed = limit(
                     0,
                     max_allowed,
@@ -94,8 +98,7 @@ class PowerSupply(sim.Component):
                         0,
                         self.max_power_from_grid -  self.total_distributed,
                         self.max_power_from_grid -  self.total_distributed,
-                    ),
-                    
+                    ),                    
                 )
                 # Note to the system when the maximum energy consumption is reached
                 if max_allowed == 0:
@@ -106,5 +109,10 @@ class PowerSupply(sim.Component):
                 
                 i.max_power_consumption = limit(0, rl_distribution[counter], max_allowed)
                 #print(i.max_power_consumption, "Allowed")
-                self.total_distributed += i.power_consumption
+                self.total_distributed += i.max_power_consumption
                 counter += 1
+
+    #Calculate the percantage of tha avialable power used from the system
+    def __calculate_usage__(self):
+        percentage = (self.Total_Used / self.max_power_from_grid) * 100
+        self.percentage_used = limit(0,percentage,100 )

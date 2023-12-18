@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import make_interp_spline
 
 class SimManager:
-    def __init__(self, charging_stations: int, total_time: int,spread_type):
+    def __init__(self, charging_stations: int, total_time: int,spread_type, grid_supply):
         self.shedual = Prepare(total_time=total_time)
         self.charging_stations = charging_stations
 
@@ -24,6 +24,8 @@ class SimManager:
         self.desired_times = []
         self.difference_times = []
         self.poles_active = []
+        self.poles_charge_factors = []
+        self.charge_percentage = []
         self.power_consumption_trend = [] #List used for monitopring power consumption during the day
         self.first = False
         self.old_time = 0
@@ -37,7 +39,7 @@ class SimManager:
             yieldless=True,
         )
         # Create the power supply
-        self.power_supply_o = PowerSupply(env=self.env_sim, max_power_from_grid=30000,power_consumption_trend=self.power_consumption_trend)
+        self.power_supply_o = PowerSupply(env=self.env_sim, max_power_from_grid=grid_supply,power_consumption_trend=self.power_consumption_trend)
 
         # Create the waiting room
         self.waiting_room = sim.Queue(name="waitingline88", monitor=False)
@@ -51,13 +53,15 @@ class SimManager:
                 env=self.env_sim,
                 power_supply=self.power_supply_o,
                 max_power_delivery=200000,
-                diffrence_desired= self.difference_times
+                diffrence_desired= self.difference_times,
+                number= _
             )
             for _ in range(self.charging_stations)
         ]
         #Set up the charging pole in use list
         for _ in range(self.charging_stations):
             self.poles_active.append(False)
+            self.poles_charge_factors.append(1)
 
         # Create the EV generator
         self.generator = CustomerGenerator(
@@ -66,6 +70,7 @@ class SimManager:
             clerks=self.stations,
             wait_times=self.wait_times,
             total_times= self.total_times,
+            charge_percentage= self.charge_percentage,
             time_before_service=self.time_before_service,
             shedual=self.shedual.trucks,
             desired_times=self.desired_times,
@@ -133,6 +138,7 @@ class SimManager:
         #Get the data from the simmulation
         sim_data = self.__get_env_Data__()
         #Return data to the RL model (diffrence is in the reset)
+
         if self.old_time >= self.total_time:
             return True,sim_data
         else:
@@ -142,6 +148,7 @@ class SimManager:
     def rl_reset(self):
         length = len(self.wait_times)
         sim_data = self.__get_env_Data__()
+
         self.old_time = 0
         #self.__get_waitingline_data() 
         #Clear the charging poles
@@ -150,7 +157,6 @@ class SimManager:
                 #print("empty")
             temp =self.waiting_room.pop()
             temp.in_loop = False        
-        
 
         for i in self.stations:
             #Wait until 
@@ -159,12 +165,12 @@ class SimManager:
                 found = i.clear_station()
                 self.env_sim.run(till=self.env_sim.now() + 100)
 
-
         #Clear all the data from the lists (to start with a clean simmulation)
         self.wait_times.clear()
         self.waiting_room.clear()
         self.total_times.clear()
         self.difference_times.clear()
+        self.charge_percentage.clear()
         #Reset the enviroment to time unit 0
         self.env_sim.reset_now()
         #Prepare a new shedual
@@ -174,8 +180,15 @@ class SimManager:
         self.generator.reset()
         #Return the measured state of the enviroment
         #Get the data from the simmulation
-
+   
         return sim_data, length
+    
+    #This method is to make sure that there is at least 1 car through the systme
+    def loop_first_car(self,action):
+        done = False
+        #Loop until 1 car has passed thorugh the system
+        while len(self.charge_percentage) == 0 and done == False:
+            done,data = self.rl_Run(action)
 #-------------------------------------------------------------------------------
     #This method is used to extract the waiting times from the system
     def __get_waiting_data__(self):
@@ -210,6 +223,8 @@ class SimManager:
                 self.poles_active[i] = False
             else:
                 self.poles_active[i] = True
+            #Get the charging factor from the pole
+            self.poles_charge_factors[i] = pole.charge_factor
             i +=1
 
     #This method gets the data from the waiting line
@@ -227,6 +242,11 @@ class SimManager:
         wait_data = self.__get_waiting_data__()
         self.__get_pole_data__()
         total_charge_request = self.__get_wait_line_data__()
+        #Get the avarge charge percentage
+        if len(self.charge_percentage) != 0:
+            avarge_charge_percentage = sum(self.charge_percentage) / len(self.charge_percentage)
+        else:
+            avarge_charge_percentage = 50
         #Create a dictonary with all the data that commes from the dsimmulation
         sim_values={
             'avg_tot': wait_data[0], 
@@ -236,10 +256,16 @@ class SimManager:
             'min_diff': wait_data[4],
             'avg_wait': wait_data[5],
             'pole_data': self.poles_active, 
-            'Charge_Request' : total_charge_request            
+            'pole_charge_factors' : self.poles_charge_factors,
+            'Charge_Request' : total_charge_request ,
+            'Avg_ChargePpercentage' : avarge_charge_percentage,
+            'Total_power_Draw': self.power_supply_o.Total_Used,
+            'Max_power_Draw' : self.power_supply_o.max_power_from_grid,
+            'Percentage_Used' : self.power_supply_o.percentage_used     
         }
         #Return the dictonary
         return sim_values
+    print("dfdfd")
 #-------------------------------------------------------------------------------
     def reset_shedual(
         self,
@@ -269,10 +295,10 @@ class SimManager:
             j += 1
 
         X_Y_Spline = make_interp_spline(x, self.power_consumption_trend)
-        X_ = np.linspace(0, j, 50)
+        X_ = np.linspace(0, j, 500)
         Y_ = X_Y_Spline(X_)
 
-        plt.plot(X_,Y_)
+        plt.plot(self.power_consumption_trend)
         plt.title("Plot Smooth Curve Using the scipy.interpolate.make_interp_spline() Class")
         plt.xlabel("X")
         plt.ylabel("Y")
