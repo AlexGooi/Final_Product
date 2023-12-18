@@ -82,7 +82,7 @@ class Train_Class(Env):
         return observation, info
     
 #Create the reinfrocement learning model
-rl_env = Train_Class(amount_of_poles=1,grid_supply=10)
+rl_env = Train_Class(amount_of_poles=4,grid_supply=20)
 log_path = os.path.join('.','logs')
 model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,learning_rate=0.007,clip_range=0.4)
 
