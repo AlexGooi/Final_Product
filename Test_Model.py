@@ -7,6 +7,15 @@ from sim_manager import SimManager
 from limit import limit
 from limit import scale_value
 
+from gymnasium import Env
+from gymnasium.spaces import Discrete, Box,Dict,MultiBinary
+import numpy as np
+import os
+from stable_baselines3 import PPO
+from sim_manager import SimManager
+from limit import limit
+from limit import scale_value
+
 #-------------------------------------------------------------------------------
 
 
@@ -53,7 +62,7 @@ class Train_Class(Env):
         reward = power_used_factor -50  
         #print(len(self.man.shedual.trucks))
         #When the simmulation has run for a day return the values one last time and reset the env
-        #print(rl_data['Avg_ChargePpercentage'],rl_data['Percentage_Used'])
+        print(rl_data['Avg_ChargePpercentage'],rl_data['Percentage_Used'])
         if done:
             rl_data,temp = self.man.rl_reset()
             print(rl_data['Avg_ChargePpercentage'],action[0],action)
@@ -64,7 +73,6 @@ class Train_Class(Env):
         #return_list = [np.float32(rl_data['avg_wait']), np.float32(rl_data['avg_tot']),rl_data['pole_data']]
 
         observation  = {'obs1':np.float32(rl_data['pole_charge_factors']), 'obs2': np.float32(rl_data['Percentage_Used']),'obs3': rl_data['pole_data']}
-        print(observation)
         return observation, reward/2400, done, False, info
 
     def render(self):
@@ -82,10 +90,38 @@ class Train_Class(Env):
         observation  = {'obs1':np.float32(0), 'obs2': np.float32(0), 'obs3' :np.float32(0),'obs4': self.dummy}
         return observation, info
     
-#Create the reinfrocement learning model
+
+
 rl_env = Train_Class(amount_of_poles=4,grid_supply=20)
 log_path = os.path.join('.','logs')
 model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,learning_rate=0.007,clip_range=0.4)
 
-model.learn(total_timesteps= 120000,progress_bar= True)
-model.save('First_Model')
+model.load('First_Model')
+
+#Create 
+
+
+man = SimManager(4, 2400,spread_type=5,grid_supply=20)
+
+dummy = []
+#Create a action space scaled version (later used in the step method)
+
+
+actions = [0,0,0,0,6,6,6,6,6,5,5,5,5,5,5,5,5]    
+#done,rl_data = man.rl_Run(actions)
+observation  = rl_env.reset()
+print(observation)
+for i in range(8):       
+    done = False
+
+    while done == False:            
+        actions =  model.predict(observation[0])
+        data = rl_env.step(actions)
+        #done,rl_data = man.rl_Run(actions)
+        observation  = data[0]
+    #print("Charge_Percentage", data['Avg_ChargePpercentage'])
+    #print(data['avg_wait'],lent)
+        #print(sim_data['Charge_Request'])
+
+
+    man.plot_consumption()
