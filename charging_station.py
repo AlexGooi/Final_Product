@@ -41,7 +41,7 @@ class ChargingStation(sim.Component):
 
     def process(self):
         while True:
-            print("Pole_Number",self.number)
+            #print("Pole_Number",self.number)
             # Continu looping until a vehicle shows up in the waiting line
             while len(self.waiting_room) == 0:
                 self.passivate()
@@ -137,14 +137,14 @@ class ChargingStation(sim.Component):
         self.reset = True
         
         try:
-            if self.vehicle.battery_charge < 100:
-                self.vehicle.battery_charge = 100
-                self.charge_car()
+            if self.vehicle.battery_charge < 1000:
+                self.vehicle.battery_charge = 1000
+                self.charge_car(bat_sim= False)
                 self.vehicle.in_loop = False
-        except:
+        except Exception as e:
+            print("Exception!!!",e)
             pass
         self.first = True
-        #self.passivate()
-
+        self.passivate()
 
         return False

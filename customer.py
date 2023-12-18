@@ -46,11 +46,12 @@ class Customer(sim.Component):
         #print("Process starts = ", self.number)
         # Put the vehicle in the waiting room
         self.enter(self.waiting_room)
-        print("Enter ")
+        #print("Enter ")
         # Check if there is a station that is passive
         for station in self.stations:
             if station.ispassive():
                 station.activate()
-                print("Activate_Station")
+                #print("Activate_Station")
                 break  # activate at most one clerk
+        #print("All stations active")
         self.passivate()

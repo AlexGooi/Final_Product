@@ -7,7 +7,7 @@ from limit import scale_value
 
 array = [5,5,5,5,6,6,6,6,6,6,5,5,5,5,5,5,5,5]
 if __name__ == "__main__":
-    man = SimManager(4, 3400,spread_type=5,grid_supply=12)
+    man = SimManager(2, 2400,spread_type=5,grid_supply=7)
     #for i in man.shedual.trucks:
         #print(i.arrival_time)
     #print(man.shedual.trucks)
@@ -17,8 +17,8 @@ if __name__ == "__main__":
         man.loop_first_car(array)
         while done == False:            
             done,sim_data = man.rl_Run(array)
-            print("loop", i)    
-            print("Wait",len(man.waiting_room))        
+            #print("loop", i)    
+            #print("Wait",len(man.waiting_room))        
             #print(len(man.shedual.trucks))
             #print(sim_data['Percentage_Used'])
             #print(sim_data['Avg_ChargePpercentage'])
