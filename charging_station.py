@@ -144,7 +144,7 @@ class ChargingStation(sim.Component):
         except:
             pass
         self.first = True
-        self.passivate()
+        #self.passivate()
 
 
         return False

@@ -5,9 +5,9 @@ import salabim as sim
 from limit import scale_value
 
 
-array = [5,6,5,20,6,6,6,6,6,6,5,5,5,5,5,5,5,5]
+array = [5,5,5,5,6,6,6,6,6,6,5,5,5,5,5,5,5,5]
 if __name__ == "__main__":
-    man = SimManager(2, 200,spread_type=5,grid_supply=12)
+    man = SimManager(4, 3400,spread_type=5,grid_supply=12)
     #for i in man.shedual.trucks:
         #print(i.arrival_time)
     #print(man.shedual.trucks)
