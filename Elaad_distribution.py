@@ -6,8 +6,8 @@ from scipy.stats import gamma
 import numpy as np
 import pickle
 
-file_path1 = "./CSV/open_transactions.csv"
-file_path2 = "./CSV/open_transactions.csv"
+file_path1 = "RL_Sim/CSV/open_transactions.csv"
+file_path2 = "RL_Sim/CSV/open_metervalues.csv"
 
 df1 = pd.read_csv(file_path1, delimiter=';', decimal=',')
 df2 = pd.read_csv(file_path2, delimiter=';', decimal=',')
@@ -23,37 +23,36 @@ df1['DayOfWeek'] = df1['UTCTransactionStart'].dt.dayofweek
 df1['ArrivalMinute'] = df1['UTCTransactionStart'].dt.hour * 60 + df1['UTCTransactionStart'].dt.minute
 
 # Segregate df1 into weekdays and weekends
-df_weekdays = df1[df1['DayOfWeek'].between(0, 4)]
-df_weekends = df1[df1['DayOfWeek'].between(5, 6)]
+df1_weekdays = df1[df1['DayOfWeek'].between(0, 4)]
+df1_weekends = df1[df1['DayOfWeek'].between(5, 6)]
 
 # Separate arrival and departure dataframes for weekdays and weekends
-arrival_weekdays = df_weekdays[['ArrivalHour']]
-departure_weekdays = df_weekdays[['DepartureHour']]
-arrival_weekends = df_weekends[['ArrivalHour']]
-departure_weekends = df_weekends[['DepartureHour']]
+arrival_weekdays = df1_weekdays[['ArrivalHour']]
+departure_weekdays = df1_weekdays[['DepartureHour']]
+arrival_weekends = df1_weekends[['ArrivalHour']]
+departure_weekends = df1_weekends[['DepartureHour']]
 
 # Calculate the average number of arrivals per hour for weekdays
-average_hourly_arrivals_weekdays = df_weekdays.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
-average_hourly_arrivals_weekdays['AverageArrivals'] /= len(df_weekdays['DayOfWeek'].unique())
+average_hourly_arrivals_weekdays = df1_weekdays.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
+average_hourly_arrivals_weekdays['AverageArrivals'] /= len(df1_weekdays['DayOfWeek'].unique())
 
 # Average hourly departures for weekdays
-average_hourly_departures_weekdays = df_weekdays.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
-average_hourly_departures_weekdays['AverageDepartures'] /= len(df_weekdays['DayOfWeek'].unique())
+average_hourly_departures_weekdays = df1_weekdays.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
+average_hourly_departures_weekdays['AverageDepartures'] /= len(df1_weekdays['DayOfWeek'].unique())
 
 # Average hourly arrivals for weekends
-average_hourly_arrivals_weekends = df_weekends.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
-average_hourly_arrivals_weekends['AverageArrivals'] /= len(df_weekends['DayOfWeek'].unique())
+average_hourly_arrivals_weekends = df1_weekends.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
+average_hourly_arrivals_weekends['AverageArrivals'] /= len(df1_weekends['DayOfWeek'].unique())
 
 # Average hourly departures for weekends
-average_hourly_departures_weekends = df_weekends.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
-average_hourly_departures_weekends['AverageDepartures'] /= len(df_weekends['DayOfWeek'].unique())
+average_hourly_departures_weekends = df1_weekends.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
+average_hourly_departures_weekends['AverageDepartures'] /= len(df1_weekends['DayOfWeek'].unique())
 
 # Function to plot the distribution
-def plot_average_distribution(arrival_df, departure_df, title_suffix, colors=['#B9D531', '#EC008C']):
-    # Merge the dataframes on the hour
-    combined_df = pd.merge(arrival_df, departure_df, left_on='ArrivalHour', right_on='DepartureHour', how='outer')
-    combined_df = combined_df.fillna(0)  # Fill NaN values with 0
-    combined_df.plot(x='ArrivalHour', y=['AverageArrivals', 'AverageDepartures'], kind='bar', figsize=(10, 5), color=colors)
+def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=['#B9D531', '#EC008C']):
+    combined_df1 = pd.merge(arrival_df1, departure_df1, left_on='ArrivalHour', right_on='DepartureHour', how='outer')
+    combined_df1 = combined_df1.fillna(0)  # Fill NaN values with 0
+    combined_df1.plot(x='ArrivalHour', y=['AverageArrivals', 'AverageDepartures'], kind='bar', figsize=(10, 5), color=colors)
     plt.title(f'Average Arrival and Departure Distribution over 24 Hours ({title_suffix})')
     plt.xlabel('Hour of Day')
     plt.ylabel('Average Count')
@@ -61,48 +60,123 @@ def plot_average_distribution(arrival_df, departure_df, title_suffix, colors=['#
     plt.tight_layout()
 
 # Function to distributions
-def calculate_distribution_params(df):
-    df_sorted = df.sort_values(by='UTCTransactionStart')
-    df_sorted['TimeDiff'] = df_sorted['UTCTransactionStart'].diff().dt.total_seconds() / 60
-    df_sorted = df_sorted.dropna(subset=['TimeDiff'])
-    df_sorted['TimeDiff'] = np.where(df_sorted['TimeDiff'] <= 0, 0.001, df_sorted['TimeDiff'])
-    params_gamma = stats.gamma.fit(df_sorted['TimeDiff'], floc=0)
-    params_expon = stats.expon.fit(df_sorted['TimeDiff'], floc=0)
-    return params_gamma, params_expon, df_sorted
+def calculate_distribution_params_at(df1): #Gamma distribution is best fit
+    df1_sorted_at = df1.sort_values(by='UTCTransactionStart')
+    df1_sorted_at['TimeDiff'] = df1_sorted_at['UTCTransactionStart'].diff().dt.total_seconds() / 60
+    df1_sorted_at = df1_sorted_at.dropna(subset=['TimeDiff'])
+    df1_sorted_at['TimeDiff'] = np.where(df1_sorted_at['TimeDiff'] <= 0, 0.001, df1_sorted_at['TimeDiff']) # zeros to super small
+    params_gamma_at = stats.gamma.fit(df1_sorted_at['TimeDiff'], floc=0)
+    params_expon_at = stats.expon.fit(df1_sorted_at['TimeDiff'], floc=0)
+    params_lognorm_at = stats.lognorm.fit(df1_sorted_at['TimeDiff'], floc=0)
+    return params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at
 
-# Plotting for weekdays and weekends
-#plot_average_distribution(average_hourly_arrivals_weekdays, average_hourly_departures_weekdays, 'Weekdays', colors=['#B9D531', '#EC008C'])
-#plot_average_distribution(average_hourly_arrivals_weekends, average_hourly_departures_weekends, 'Weekends', colors=['#B9D531', '#EC008C'])
-#plt.show()
+def calculate_available_service_time_distribution(df1):
+    df1_sorted_ast = df1.sort_values(by='UTCTransactionStart') #sort by arrival time
+    df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60
+    df1_sorted_ast = df1_sorted_ast.dropna(subset=['AvailableServiceTime'])
+    df1_sorted_ast = df1_sorted_ast[df1_sorted_ast['AvailableServiceTime'] > 0]
+    params_gamma_ast = stats.gamma.fit(df1_sorted_ast['AvailableServiceTime'], floc=0)
+    params_expon_ast = stats.expon.fit(df1_sorted_ast['AvailableServiceTime'], floc=0)
+    params_lognorm_ast = stats.lognorm.fit(df1_sorted_ast['AvailableServiceTime'], floc=0)
 
-params_gamma, params_expon, df1_sorted = calculate_distribution_params(df1)
+    return params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast
+
+
+def calculate_distribution_params_te(df1): #lognormal distribution is best fit
+    df1_sorted_te = df1.sort_values(by='UTCTransactionStart') #TotalEnergy sorted on the arrivaltime of the EV
+    params_gamma_te = stats.gamma.fit(df1_sorted_te['TotalEnergy'], floc=0)
+    params_expon_te = stats.expon.fit(df1_sorted_te['TotalEnergy'], floc=0)
+    params_lognorm_te = stats.lognorm.fit(df1_sorted_te['TotalEnergy'], floc=0)
+    return params_gamma_te, params_expon_te, params_lognorm_te, df1_sorted_te
+
+def calculate_statistical_metrics(data, params_gamma, params_expon, params_lognorm):
+    ks_stat_gamma, p_value_gamma = stats.kstest(data, 'gamma', params_gamma)
+    ks_stat_expon, p_value_expon = stats.kstest(data, 'expon', params_expon)
+    ks_stat_lognorm, p_value_lognorm = stats.kstest(data, 'lognorm', params_lognorm)
+
+    aic_gamma = calculate_aic_bic(data, 'gamma', params_gamma)
+    aic_expon = calculate_aic_bic(data, 'expon', params_expon)
+    aic_lognorm = calculate_aic_bic(data, 'lognorm', params_lognorm)
+
+    bic_gamma = calculate_aic_bic(data, 'gamma', params_gamma, use_bic=True)
+    bic_expon = calculate_aic_bic(data, 'expon', params_expon, use_bic=True)
+    bic_lognorm = calculate_aic_bic(data, 'lognorm', params_lognorm, use_bic=True)
+
+    return {
+        'gamma': {'ks_stat': ks_stat_gamma, 'p_value': p_value_gamma, 'aic': aic_gamma, 'bic': bic_gamma},
+        'expon': {'ks_stat': ks_stat_expon, 'p_value': p_value_expon, 'aic': aic_expon, 'bic': bic_expon},
+        'lognorm': {'ks_stat': ks_stat_lognorm, 'p_value': p_value_lognorm, 'aic': aic_lognorm, 'bic': bic_lognorm}
+    }
+
+
+def calculate_aic_bic(data, dist_name, params, use_bic=False):
+    k = len(params)
+    llk = np.sum(getattr(stats, dist_name).logpdf(data, *params))
+    return -2 * llk + k * (np.log(len(data)) if use_bic else 2)
+
+
+#BEST FIT IS GAMMA FOR ARRIVAL TIME
+params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at = calculate_distribution_params_at(df1)
+metrics_at = calculate_statistical_metrics(df1_sorted_at['TimeDiff'], params_gamma_at, params_expon_at, params_lognorm_at)
+
+#INCONCLUSIVE: Based on the KS Statistic, the Log-Normal distribution seems to provide the closest fit to the empirical distribution. 
+#However, when considering AIC and BIC, the Gamma distribution is slightly favored due to its lower values, indicating a better balance of fit and simplicity.
+#Gamma distribution: balance of simplicity and fit. Log-Normal distribution: closest fit to empirical 
+params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast = calculate_available_service_time_distribution(df1)
+metrics_ast = calculate_statistical_metrics(df1_sorted_ast['AvailableServiceTime'], params_gamma_ast, params_expon_ast, params_lognorm_ast)
+
+#BEST FIT IS LOGNORMAL FOR TOTAL ENERGY
+params_gamma_te, params_expon_te, params_lognorm_te, df1_sorted_te = calculate_distribution_params_te(df1)
+metrics_te = calculate_statistical_metrics(df1_sorted_te['TotalEnergy'], params_gamma_te, params_expon_te, params_lognorm_te)
+
+
+
+
+print("Gamma distribution parameters:", params_gamma_at)
+print("Metric Total Energy distributions", metrics_te)
+print("Metric Available Service Time distributions", metrics_ast)
+print("Metric Arrival Time distributions", metrics_at)
+
 
 #save params_gamma LOOK! I AM A PICKLE
-with open('params_gamma.pkl', 'wb') as f:
-    pickle.dump(params_gamma, f)
+with open('params_gamma_at.pkl', 'wb') as f:
+    pickle.dump(params_gamma_at, f)
 
-# Generate points on the x axis suitable for the range of your data
-x_gamma = np.linspace(start=0, stop=df1_sorted['TimeDiff'].max(), num=10000)
-x_expon = np.linspace(start=0, stop=df1_sorted['TimeDiff'].max(), num=10000)
+with open('params_gamma_ast.pkl', 'wb') as f:
+    pickle.dump(params_gamma_ast, f)
 
+with open('params_lognorm_te.pkl', 'wb') as f:
+    pickle.dump(params_lognorm_te, f)
 
-# Plot the histogram of the empirical data
-#plt.figure(figsize=(15, 6))
-##sns.histplot(df1_sorted['TimeDiff'], bins=bins, kde=False, stat='density', label='Empirical Data', color='#FBD5EC')
-
-# Plot the PDF of the fitted gamma distribution
-#pdf_gamma = stats.gamma.pdf(x_gamma, *params_gamma)
-#plt.plot(x_gamma, pdf_gamma, label='Fitted Gamma Distribution', color='#B9D531')
-
-# Plot the PDF of the fitted exponential distribution
-#pdf_expon = stats.expon.pdf(x_expon, *params_expon)
-#plt.plot(x_expon, pdf_expon, label='Fitted Exponential Distribution', color='#EC008C')
+# # Generate points on the x axis suitable for the range of your data
+# x_gamma_at = np.linspace(start=0, stop=df1_sorted_at['TimeDiff'].max(), num=10000)
+# #x_expon_at = np.linspace(start=0, stop=df1_sorted_at['AvailableServiceTime'].max(), num=10000)
+# #x_lognorm_at = np.linspace(start=0, stop=df1_sorted_at['TotalEnergy'].max(), num=10000)
 
 
-# Finalize the plot (same as before)
-#plt.xlabel('Time Difference Between Arrivals (Minutes)')
-#plt.ylabel('Density')
-#plt.title('Average Daily Frequency of Time Differences Between Arrivals with Fitted Distributions')
-#plt.xlim(0, df1_sorted['TimeDiff'].quantile(0.95))
-#plt.legend()
-#plt.show()
+# # Plot the histogram of the empirical data
+# plt.figure(figsize=(15, 6))
+# bin_size = 1  # The bin size can be adjusted to increase of decrease granularity
+# bins = int((df1_sorted_at['TimeDiff'].max() - df1_sorted_at['TimeDiff'].min()) / bin_size)
+# sns.histplot(df1_sorted_at['TimeDiff'], bins=bins, kde=False, stat='density', label='Empirical Data', color='#FBD5EC')
+
+# # Plot the PDF of the fitted gamma distribution
+# pdf_gamma_at = stats.gamma.pdf(x_gamma_at, *params_gamma_at)
+# plt.plot(x_gamma_at, pdf_gamma_at, label='Fitted Gamma Distribution', color='#B9D531')
+
+# # Plot the PDF of the fitted exponential distribution
+# pdf_expon_at = stats.expon.pdf(x_gamma_at, *params_expon_at)
+# plt.plot(x_gamma_at, pdf_expon_at, label='Fitted Exponential Distribution', color='#EC008C')
+
+# # Plot the PDF of the fitted exponential distribution
+# pdf_lognorm_at = stats.lognorm.pdf(x_gamma_at, *params_lognorm_at)
+# plt.plot(x_gamma_at, pdf_lognorm_at, label='Fitted Lognormal Distribution', color='#696A6C')
+
+
+# # Finalize the plot (same as before)
+# plt.xlabel('Time Difference Between Arrivals (Minutes)')
+# plt.ylabel('Density')
+# plt.title('Average Daily Frequency of Time Differences Between Arrivals with Fitted Distributions')
+# plt.xlim(0, df1_sorted_at['TimeDiff'].quantile(0.95))
+# plt.legend()
+# plt.show()
