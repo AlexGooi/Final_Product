@@ -134,17 +134,21 @@ class ChargingStation(sim.Component):
 
     #This method makes sure the station is clear of trucks
     def clear_station(self): 
-        self.reset = True
         
         try:
-            if self.vehicle.battery_charge < 1000:
-                self.vehicle.battery_charge = 1000
-                self.charge_car(bat_sim= False)
-                self.vehicle.in_loop = False
-        except Exception as e:
-            print("Exception!!!",e)
+            self.vehicle.battery_charge = 0
+            self.reset = True
+            try:
+                if self.vehicle.battery_charge < 1000:
+                    self.vehicle.battery_charge = 1000
+                    self.charge_car(bat_sim= False)
+                    self.vehicle.in_loop = False
+            except Exception as e:
+                print("Exception!!!",e)
+                pass
+            self.first = True
+            print("passivate")
+            self.passivate()
+        except:
             pass
-        self.first = True
-        self.passivate()
-
         return False

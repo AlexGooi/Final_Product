@@ -5,13 +5,13 @@ import salabim as sim
 from limit import scale_value
 
 
-array = [0.5,0.5,5,5,6,6,6,6,6,6,5,5,5,5,5,5,5,5]
+array = [6,6,6,6,6,6,6,6,6,6,5,5,5,5,5,5,5,5]
 if __name__ == "__main__":
-    man = SimManager(2, 2400,spread_type=5,grid_supply=15)
+    man = SimManager(8, 2400,spread_type=5,grid_supply=28)
     #for i in man.shedual.trucks:
         #print(i.arrival_time)
-    #print(man.shedual.trucks)
-    for i in range(8):       
+    #print(man.shedual.trucks)c
+    for i in range(4):       
         done = False
         #Make sure there is at least 1 car through the systme
         man.loop_first_car(array)
