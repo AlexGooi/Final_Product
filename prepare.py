@@ -2,7 +2,7 @@ import random
 import salabim as sim
 import time
 import scipy.stats as stats
-from Elaad_distribution import calculate_distribution_params
+#from Elaad_distribution import calculate_distribution_params #now via pickle
 from data import Truck
 import pickle
 

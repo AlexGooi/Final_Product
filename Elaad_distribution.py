@@ -6,8 +6,8 @@ from scipy.stats import gamma
 import numpy as np
 import pickle
 
-file_path1 = "RL_Sim/CSV/open_transactions.csv"
-file_path2 = "RL_Sim/CSV/open_metervalues.csv"
+file_path1 = "CSV/open_transactions.csv"
+file_path2 = "CSV/open_metervalues.csv"
 
 df1 = pd.read_csv(file_path1, delimiter=';', decimal=',')
 df2 = pd.read_csv(file_path2, delimiter=';', decimal=',')
