@@ -6,6 +6,7 @@ from limit import limit
 from limit import scale_value
 
 from power_supply import PowerSupply
+from customer import Customer
 
 class ChargingStation(sim.Component):
     def __init__(
@@ -58,8 +59,8 @@ class ChargingStation(sim.Component):
         self.vehicle.wait_times.append(self.env.now() - self.vehicle.creation_time)
         #Notify the system that the pole is charging
 
-
-        if ((self.vehicle.creation_time == 0  and self.env.now() == 0) or self.first == False) and self.vehicle.in_loop:
+        #((self.vehicle.creation_time == 0  and self.env.now() == 0) or self.first == False) and 
+        if self.vehicle.in_loop:
             self.first = False
             self.charging = True
             #Get the starting time of the charging process
@@ -136,8 +137,8 @@ class ChargingStation(sim.Component):
     def clear_station(self): 
         
         try:
-            self.vehicle.battery_charge = 0
-            self.reset = True
+            self.vehicle.battery_charge = 999
+            self.reset = True            
             try:
                 if self.vehicle.battery_charge < 1000:
                     self.vehicle.battery_charge = 1000
@@ -148,7 +149,8 @@ class ChargingStation(sim.Component):
                 pass
             self.first = True
             print("passivate")
-            self.passivate()
-        except:
-            pass
+            
+        except Exception as e:
+            print("Exception!!!",e)
+        self.passivate()
         return False

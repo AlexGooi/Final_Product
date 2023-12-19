@@ -163,7 +163,7 @@ class SimManager:
             found = True          
             while found == True:
                 found = i.clear_station()
-                self.env_sim.run(till=self.env_sim.now() + 100)
+                self.env_sim.run(till=self.env_sim.now() + 10)
 
         #Clear all the data from the lists (to start with a clean simmulation)
         self.wait_times.clear()
