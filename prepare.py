@@ -7,9 +7,15 @@ from data import Truck
 import pickle
 
 #PICKLEEEE
-with open('params_gamma.pkl', 'rb') as f:
-    params_gamma = pickle.load(f)
-
+#Arrival time parameters of best fitting distribution
+with open('params_gamma_at.pkl', 'rb') as f:
+    params_gamma_at = pickle.load(f)
+#Avalaible service time of best fitting distribution
+with open('params_gamma_ast.pkl', 'rb') as f:
+    params_gamma_ast = pickle.load(f)
+#Total Energy parameters of best fitting distribution
+with open('params_lognorm_te.pkl', 'rb') as f:
+    params_lognorm_te = pickle.load(f)
 
 class Prepare:
     '''Class that prepares a car arrival set'''
@@ -58,10 +64,12 @@ class Prepare:
                 )
                 #print("prepare")
             elif spread_type == 4:
-                arrival = stats.gamma(*params_gamma).rvs() # Generate arrival time using the Gamma distribution
+                arrival = stats.gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution
                 service_time = self.service_times.sample()
-                self.avg_wait_time.append(service_time)
+                self.avg_wait_time.append(service_time)     
                 service_invert = 100.0 - service_time
+                #total_energy = stats.lognorm(*params_lognorm_te).rvs() #Total Energy Need based on the lognormal distribution
+                #available_service_time = stats.gamma(*params_gamma_ast).rvs()
                 truck_data = Truck(
                     battery=service_invert,
                     arrival_time=time,
