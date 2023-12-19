@@ -75,7 +75,8 @@ class Prepare:
                     arrival_time=time,
                     total_time=0,
                     total_wait_time=0, 
-                    desired_wait_time=0        
+                    desired_wait_time=0,
+                    desired_battery=      
                 )
             #Poison with a larger charging time 
             elif spread_type == 5:
