@@ -7,7 +7,8 @@ from charging_station import ChargingStation
 from prepare import Prepare
 from matplotlib import pyplot as plt
 from scipy.interpolate import make_interp_spline
-
+from limit import moving_avarage
+#------------------------------------------------------------------------------
 class SimManager:
     def __init__(self, charging_stations: int, total_time: int,spread_type, grid_supply):
         self.shedual = Prepare(total_time=total_time)
@@ -25,6 +26,7 @@ class SimManager:
         self.difference_times = []
         self.poles_active = []
         self.poles_charge_factors = []
+        self.poles_battery_levels = []
         self.charge_percentage = []
         self.power_consumption_trend = [] #List used for monitopring power consumption during the day
         self.first = False
@@ -61,6 +63,7 @@ class SimManager:
         #Set up the charging pole in use list
         for _ in range(self.charging_stations):
             self.poles_active.append(False)
+            self.poles_battery_levels.append(0)
             self.poles_charge_factors.append(1)
 
         # Create the EV generator
@@ -163,7 +166,17 @@ class SimManager:
             found = True          
             while found == True:
                 found = i.clear_station()
-                self.env_sim.run(till=self.env_sim.now() + 10)
+                
+            all_Passive = False
+            while all_Passive == False:
+                self.env_sim.run(till=self.env_sim.now() + 200)
+                for station in self.stations:
+                    if station.ispassive() == False:
+                        print("next_Itteration")
+                        break
+                all_Passive = True
+
+            
 
         #Clear all the data from the lists (to start with a clean simmulation)
         self.wait_times.clear()
@@ -225,6 +238,10 @@ class SimManager:
                 self.poles_active[i] = True
             #Get the charging factor from the pole
             self.poles_charge_factors[i] = pole.charge_factor
+            try:
+                self.poles_battery_levels[i] = pole.vehicle.battery_charge
+            except:
+               self.poles_battery_levels[i] = 0 
             i +=1
 
     #This method gets the data from the waiting line
@@ -258,6 +275,7 @@ class SimManager:
             'pole_data': self.poles_active, 
             'pole_charge_factors' : self.poles_charge_factors,
             'Charge_Request' : total_charge_request ,
+            'Poles_Battery_Levels' : self.poles_battery_levels,
             'Avg_ChargePpercentage' : avarge_charge_percentage,
             'Total_power_Draw': self.power_supply_o.Total_Used,
             'Max_power_Draw' : self.power_supply_o.max_power_from_grid,
@@ -286,19 +304,23 @@ class SimManager:
         self.generator.shedual = self.shedual.trucks
 #-------------------------------------------------------------------------------
     #This method plots the power consumption during the day
-    def plot_consumption(self):
+    def plot_consumption(self,moving_amount):
         x = []
         j = 1
         print(type(self.power_consumption_trend))
-        for i in self.power_consumption_trend:
+        
+        ya = moving_avarage(self.power_consumption_trend,moving_amount)
+
+
+        for i in ya:
             x.append(j)
             j += 1
+        print(len(x),len(ya))
+       # X_Y_Spline = make_interp_spline(x, self.power_consumption_trend)
+        #X_ = np.linspace(0, j, 500)
+        #Y_ = X_Y_Spline(X_)
 
-        X_Y_Spline = make_interp_spline(x, self.power_consumption_trend)
-        X_ = np.linspace(0, j, 500)
-        Y_ = X_Y_Spline(X_)
-
-        plt.plot(self.power_consumption_trend)
+        plt.plot(x,ya)
         plt.title("Plot Smooth Curve Using the scipy.interpolate.make_interp_spline() Class")
         plt.xlabel("X")
         plt.ylabel("Y")

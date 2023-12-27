@@ -148,7 +148,7 @@ class ChargingStation(sim.Component):
                 print("Exception!!!",e)
                 pass
             self.first = True
-            print("passivate")
+            #print("passivate")
             
         except Exception as e:
             print("Exception!!!",e)
