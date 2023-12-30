@@ -27,6 +27,9 @@ class SimManager:
         self.poles_active = []
         self.poles_charge_factors = []
         self.poles_battery_levels = []
+        self.poles_desired_battery = []
+        self.poles_time_remaining = []
+        self.poles_hold_back = 0
         self.charge_percentage = []
         self.power_consumption_trend = [] #List used for monitopring power consumption during the day
         self.first = False
@@ -65,6 +68,8 @@ class SimManager:
             self.poles_active.append(False)
             self.poles_battery_levels.append(0)
             self.poles_charge_factors.append(1)
+            self.poles_time_remaining.append(0)
+            self.poles_desired_battery.append(0)
 
         # Create the EV generator
         self.generator = CustomerGenerator(
@@ -169,10 +174,10 @@ class SimManager:
                 
             all_Passive = False
             while all_Passive == False:
-                self.env_sim.run(till=self.env_sim.now() + 200)
+                self.env_sim.run(till=self.env_sim.now() + 1)
                 for station in self.stations:
                     if station.ispassive() == False:
-                        print("next_Itteration")
+                        #print("next_Itteration")
                         break
                 all_Passive = True
 
@@ -230,18 +235,28 @@ class SimManager:
     #This metohd detects which charging poles are being used
     def __get_pole_data__(self):
         i = 0
+        self.poles_hold_back = 0
         #loop through all the charging poles
         for pole in self.stations:
             if pole.ispassive():
                 self.poles_active[i] = False
             else:
                 self.poles_active[i] = True
+            #Check if the pole is held back by the battery
+            if pole.hold_back:
+                self.poles_hold_back +=1
             #Get the charging factor from the pole
             self.poles_charge_factors[i] = pole.charge_factor
             try:
-                self.poles_battery_levels[i] = pole.vehicle.battery_charge
+                self.poles_battery_levels[i] = pole.vehicle.battery_charge / 10
             except:
                self.poles_battery_levels[i] = 0 
+            #Charging time remaining
+            self.poles_time_remaining[i] = pole.remaining_duration
+            try:                
+                self.poles_desired_battery[i] = pole.vehicle.desired_battery
+            except: 
+               self.poles_desired_battery[i] = 0 
             i +=1
 
     #This method gets the data from the waiting line
@@ -276,6 +291,9 @@ class SimManager:
             'pole_charge_factors' : self.poles_charge_factors,
             'Charge_Request' : total_charge_request ,
             'Poles_Battery_Levels' : self.poles_battery_levels,
+            'Poles_Desired_Battery' : self.poles_desired_battery,
+            'Poles_Time_Remaining' : self.poles_time_remaining,
+            'Poles_hold_back' : self.poles_hold_back,
             'Avg_ChargePpercentage' : avarge_charge_percentage,
             'Total_power_Draw': self.power_supply_o.Total_Used,
             'Max_power_Draw' : self.power_supply_o.max_power_from_grid,

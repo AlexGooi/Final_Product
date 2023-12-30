@@ -17,6 +17,12 @@ with open('params_gamma_ast.pkl', 'rb') as f:
 with open('params_lognorm_te.pkl', 'rb') as f:
     params_lognorm_te = pickle.load(f)
 
+arrival = stats.gamma(*params_gamma_at).rvs()
+
+
+
+print(arrival)
+
 class Prepare:
     '''Class that prepares a car arrival set'''
 
@@ -85,7 +91,7 @@ class Prepare:
                 
                 battery_level = 100.0 - random.randint(10, 100)
                 desired_level = random.randint(70,100)
-                max_wait_time = random.randint(150,170)
+                max_wait_time = random.randint(700,730)
                 truck_data = Truck(
                     battery=battery_level,
                     arrival_time=time,

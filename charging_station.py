@@ -29,12 +29,14 @@ class ChargingStation(sim.Component):
         self.diffrence_desired = diffrence_desired
         self.charge_factor = 1
         self.charging_percentage = 100
+        self.time_remaining = 0
         self.charging = False
         self.reset = False
         self.number = number
         # Append the power consumption to the consumtion list
         self.power_supply.power_used_list.append(self.power_consumption)
         self.power_consumption.max_power_request = self.max_power_delivery
+        self.hold_back = False
         self.first = True
         self.mode.monitor(False)
         self.status.monitor(False)   
@@ -65,38 +67,41 @@ class ChargingStation(sim.Component):
             self.charging = True
             #Get the starting time of the charging process
             start_charging = self.env.now()
-            time_charging = 0
-            #print(self.vehicle.battery_charge,"Battery Charge")
+            time_charging = 0            
             while (self.vehicle.battery_charge < self.vehicle.desired_battery * 10) and time_charging < self.vehicle.max_wait_time :
+                #Calculate the remaining charge time
+                self.remaining_duration = limit(0,self.vehicle.max_wait_time - time_charging,self.vehicle.max_wait_time)
                 #Determine the charging time
                 time_charging = self.env.now() - start_charging   
-                if self.vehicle.battery_charge <= 1000 - 1:   
-                    
+                if self.vehicle.battery_charge <= 1000 - 1:                       
                     add_charge = limit(0,self.power_consumption.max_power_consumption, 1000 - self.vehicle.battery_charge)
                     #Limit the charge when the battery is higher then 80 %
                     if bat_sim:
                         #Limit the charge when the battery is above 80%
                         if self.vehicle.battery_charge >= 800:
-                        
+                            self.hold_back = True
                             self.charge_factor = scale_value(input_value= self.vehicle.battery_charge, input_lower= 1000, input_upper= 800, output_lower= 0.1,output_upper= 1.0)
                             #factor = scale_value(input = self.vehicle.battery_charge, input_lower= 800, input_upper= 1000, output_lower= 1.0,output_upper= 0.1)
                             add_charge = add_charge * self.charge_factor
                         else:
+                            self.hold_back = False
                             self.charge_factor = 1
                             #print("Last 80 %")
 
                     #print(add_charge,"Add Charge")  
                     self.hold(1)
                 else:
-                    
+                    #print("last cycle")
                     add_charge = limit(
                         0,
                         self.power_consumption.max_power_consumption,
-                        1000 - self.vehicle.battery_charge,
+                        1000 - self.vehicle.battery_charge
                     )
-                    self.hold(add_charge / 10)
+                    self.hold(1)
                     #print("add",self.vehicle.battery_charge+ add_charge)
-                # Note to the power supply much power is being used from it
+                    #Check if the car is at its limit charging time
+                #if time_charging >= self.vehicle.max_wait_time:
+                #    print("Leaving early")
                 
 
                 # Hold the simulation for 1 minute

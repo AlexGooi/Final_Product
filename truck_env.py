@@ -3,6 +3,8 @@ from gymnasium.spaces import Discrete, Box,Dict,MultiBinary
 import numpy as np
 import os
 from stable_baselines3 import PPO
+from stable_baselines3 import A2C
+from stable_baselines3 import SAC
 from sim_manager import SimManager
 from multiprocessing import Process
 from limit import limit
@@ -20,17 +22,24 @@ class Train_Class(Env):
         'obs1': Box(low=0, high=1, shape=(amount_of_poles,), dtype=np.float32),
         #Percentage of total power used
         'obs2': Box(low=0, high=100, shape=(1,),dtype=np.float32),
-        #Percentage of charge used 
-        'obs3': Box(low=0, high=1, shape=(amount_of_poles,), dtype=np.float32),
         #Poles that are current;y in use
-        'obs4': MultiBinary(amount_of_poles)
+        'obs3': MultiBinary(amount_of_poles),
+        #Charging time remaining on the charging poles
+        'obs4': Box(low=0,high= 1000,shape=(amount_of_poles,),dtype= np.float32),
+        #Desired battery level for each pole
+        'obs5': Box(low= 0,high= 100,shape=(amount_of_poles,),dtype=np.float32),
+        #Actual battery levels per pole
+        'obs6': Box(low=0,high=100,shape=(amount_of_poles,),dtype=np.float32)
         })       
         #Init the state of the enviroment
         self.state = 0
         self.done = False
         self.running = False
         self.ratio = ratio
-        self.man = SimManager(amount_of_poles, 24000,spread_type=5,grid_supply=grid_supply)
+        self.extra_pos = 0
+        self.extra_neg = 0
+        self.neg_prog = 0
+        self.man = SimManager(amount_of_poles, 2400,spread_type=5,grid_supply=grid_supply)
         self.amount_of_poles = amount_of_poles
         #Create a dummy list of booleans (used for the reset function)
         self.dummy = []
@@ -44,7 +53,9 @@ class Train_Class(Env):
 
     def step(self, action):
         reward = 0
-        info = {}      
+        info = {
+            'poles_hold_back': 0
+        }      
         #Scale the action into the amount of energy given to each charging pole
         for i in range(self.amount_of_poles):
             self.action_scaled[i] = np.float32(scale_value(action[i],-1,1,0.5,10))
@@ -53,31 +64,34 @@ class Train_Class(Env):
         done, rl_data = self.man.rl_Run(self.action_scaled)    
 
         #Reward function
-        power_used_factor = rl_data['Percentage_Used'] # (rl_data["Avg_ChargePpercentage"] /100)
+        power_used_factor = self.__importance_ratio__(ratio=self.ratio,part1= rl_data['Percentage_Used'],part2=(rl_data["Avg_ChargePpercentage"]))
+        reward = self.__reward__(power_used_factor=power_used_factor,ratio= self.ratio)
+        #print(rl_data['Avg_ChargePpercentage'],rl_data['Percentage_Used'],reward)
         #scale_value(rl_data['Percentage_Used'])
         #print(self.__importance_ratio__(ratio=100,part1= 70,part2=30))
-        
-        reward = power_used_factor -50  
         #print(len(self.man.shedual.trucks))
         #When the simmulation has run for a day return the values one last time and reset the env
         #print(rl_data['Avg_ChargePpercentage'],rl_data['Percentage_Used'])
         if done:
-            print(rl_data['Avg_ChargePpercentage'])
             rl_data,temp = self.man.rl_reset()
             #print(rl_data['Avg_ChargePpercentage'],action[0],action)
             #power_used_factor = rl_data['Percentage_Used'] * (rl_data["Avg_ChargePpercentage"] / 100)
             power_used_factor = self.__importance_ratio__(ratio=self.ratio,part1= rl_data['Percentage_Used'],part2=(rl_data["Avg_ChargePpercentage"]))
-            reward = power_used_factor -50
+            reward = self.__reward__(power_used_factor=power_used_factor,ratio= self.ratio)
+            print(rl_data['Avg_ChargePpercentage'],rl_data['Percentage_Used'],reward)
         #Return the state of the simmulation to the rl model
         #print(rl_data['avg_wait'])
         #return_list = [np.float32(rl_data['avg_wait']), np.float32(rl_data['avg_tot']),rl_data['pole_data']]
 
         observation  = {'obs1':np.float32(rl_data['pole_charge_factors']),
                         'obs2': np.float32(rl_data['Percentage_Used']),
-                        'obs3': np.float32(rl_data['Poles_Battery_Levels']),
-                        'obs4': rl_data['pole_data']
+                        'obs3': rl_data['pole_data'],
+                        'obs4': np.float32(rl_data['Poles_Time_Remaining']),
+                        'obs5': np.float32(rl_data['Poles_Desired_Battery']),
+                        'obs6': np.float32(rl_data['Poles_Battery_Levels'])
                         }
         observation['obs2'] = np.reshape(observation['obs2'], newshape=(1,1))
+        info['poles_hold_back'] = rl_data['Poles_hold_back']
         #print(observation)
         return observation, reward/2400, done, False, info
 
@@ -96,7 +110,10 @@ class Train_Class(Env):
         observation  = {'obs1':np.float32([0,0,0,0,0,0,0,0,0,0]), 
                         'obs2': np.float32([0]),
                         'obs3': np.float32([0,0,0,0,0,0,0,0,0,0]),
-                        'obs4': self.dummy}
+                        'obs4': self.dummy, 
+                        'obs5': np.float32([0,0,0,0,0,0,0,0,0,0]),
+                        'obs6': np.float32([0,0,0,0,0,0,0,0,0,0])
+                    }
         observation['obs2'] = np.reshape(observation['obs2'], newshape=(1,1))
         return observation, info
     
@@ -109,24 +126,60 @@ class Train_Class(Env):
         #Return the combination of the 2 outputs
         return output1 + output2
     
+    def __reward__(self,power_used_factor,ratio):
+        # Normalize power_used_factor to be between 0 and 1
+        normalized_power = power_used_factor / 100.0
 
+        # Apply a non-linear transformation
+        reward = normalized_power ** 2
 
-train = False
+        # Normalize reward to be between -1 and 1
+        normalized_reward = 2 * (reward - 0.5)
+
+        #Intergrator that adds extra bonus when the power consumption is 100% for a longer period
+        if power_used_factor == 100 and ratio == 100:
+            try:                               
+                self.extra_pos += 0.5
+            except:
+                self.extra_pos = 0
+        else:
+            self.extra_pos = 0
+        if power_used_factor < 95:
+            self.extra_neg -= 0.05
+            if power_used_factor < 90 and power_used_factor > 85:
+                self.extra_neg -= 0.1    
+            else:
+                self.extra_neg -= 0.5
+        else:
+           self.extra_neg = 0
+        return normalized_reward + self.extra_pos + self.extra_neg
+
+model = 3
+train = True
 multi = False
 
 if multi == False:
     #Create the reinfrocement learning model
     rl_env = Train_Class(amount_of_poles=10,grid_supply=20,ratio=100)
     log_path = os.path.join('.','logs')
-    model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path)
+    if model == 1:
+        #PPO
+        model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,learning_rate=0.0003,use_sde= True,sde_sample_freq= 4,device='cpu')
+    elif model == 2:
+        #AC2
+        model = A2C('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path)
+    elif model == 3:
+        model = SAC('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,device='cuda',buffer_size=2000000)
     if train:
     #Create the reinfrocement learning model
         #,learning_rate=0.007,clip_range=0.4
-        model.learn(total_timesteps= 20,progress_bar= True)
-        model.save('Power_only_Model_5')
+        model.load('Power_Only_SAC_V3')
+        model.learn(total_timesteps= 500000,progress_bar= True)
+        model.save('Power_Only_SAC_V4')
     else:
         #Test the trained model
-        model.load('0')
+        model.load('Power_Only_SAC_V3')
+        #model =  model.to('cuda') 
     #man = SimManager(10, 2400,spread_type=5,grid_supply=20)
         dummy = []
     #Create a action space scaled version (later used in the step method)
@@ -141,18 +194,18 @@ if multi == False:
                 actions , __states =  model.predict(observation)
                 #print(actions)
                 data,temp1,done,temp2,temp3 = rl_env.step(actions[0])
-                #print("observatiosn = ",data)
+                #print("observatiosn = ",temp3['poles_hold_back'])
                 #done,rl_data = man.rl_Run(actions)
                 observation  = data
-            #print(data["Avg_ChargePpercentage"])
+                print(data["obs2"])
             #print("Charge_Percentage", data['Avg_ChargePpercentage'])
             #print(data['avg_wait'],lent)
             #print(sim_data['Charge_Request'])
             
-            rl_env.man.plot_consumption(moving_amount=10)
+            rl_env.man.plot_consumption(moving_amount=1)
 
 #------------------------------------------------------------------
-names = ['100','50','0']
+names = ['100V2','50V2','0V2']
 ratios = [100,50,0]
 #Multi processing
 def rl_model(name,ratio):
@@ -161,7 +214,7 @@ def rl_model(name,ratio):
     model = PPO('MultiInputPolicy', rl_env, verbose = 1)
 
 
-    model.learn(total_timesteps= 2000000,progress_bar= True)
+    model.learn(total_timesteps= 1500000,progress_bar= True)
     model.save(name)
 
 processes = []

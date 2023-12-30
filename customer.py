@@ -45,7 +45,18 @@ class Customer(sim.Component):
     def process(self):
         #print("Process starts = ", self.number)
         # Put the vehicle in the waiting room
-        self.enter(self.waiting_room)
+        enterd = False
+        while enterd == False:
+            try:
+                self.enter(self.waiting_room)
+                enterd = True
+            except Exception as e:
+                print("Exception = ",e)
+                #Clear the waiting 
+                while len(self.waiting_room) != 0:
+                    #print("empty")
+                    temp =self.waiting_room.pop()
+                    self.hold(1)
         #print("Enter ")
         # Check if there is a station that is passive
         for station in self.stations:
