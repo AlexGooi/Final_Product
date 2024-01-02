@@ -5,6 +5,7 @@ import os
 from stable_baselines3 import PPO
 from stable_baselines3 import A2C
 from stable_baselines3 import SAC
+from stable_baselines3 import DDPG
 from sim_manager import SimManager
 from multiprocessing import Process
 from limit import limit
@@ -107,12 +108,12 @@ class Train_Class(Env):
         #Init the next run(make sure there is already a second car in the system)
         self.man.loop_first_car(self.action_scaled)
         #Reset the observation
-        observation  = {'obs1':np.float32([0,0,0,0,0,0,0,0,0,0]), 
+        observation  = {'obs1':np.float32([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), 
                         'obs2': np.float32([0]),
-                        'obs3': np.float32([0,0,0,0,0,0,0,0,0,0]),
+                        'obs3': np.float32([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]),
                         'obs4': self.dummy, 
-                        'obs5': np.float32([0,0,0,0,0,0,0,0,0,0]),
-                        'obs6': np.float32([0,0,0,0,0,0,0,0,0,0])
+                        'obs5': np.float32([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]),
+                        'obs6': np.float32([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
                     }
         observation['obs2'] = np.reshape(observation['obs2'], newshape=(1,1))
         return observation, info
@@ -135,7 +136,6 @@ class Train_Class(Env):
 
         # Normalize reward to be between -1 and 1
         normalized_reward = 2 * (reward - 0.5)
-
         #Intergrator that adds extra bonus when the power consumption is 100% for a longer period
         if power_used_factor == 100 and ratio == 100:
             try:                               
@@ -149,36 +149,41 @@ class Train_Class(Env):
             if power_used_factor < 90 and power_used_factor > 85:
                 self.extra_neg -= 0.1    
             else:
-                self.extra_neg -= 0.5
+                self.extra_neg -= (100 - power_used_factor ) /10
         else:
            self.extra_neg = 0
         return normalized_reward + self.extra_pos + self.extra_neg
 
 model = 3
-train = True
+train = False
 multi = False
 
 if multi == False:
     #Create the reinfrocement learning model
-    rl_env = Train_Class(amount_of_poles=10,grid_supply=20,ratio=100)
+    rl_env = Train_Class(amount_of_poles=20,grid_supply=70,ratio=100)
     log_path = os.path.join('.','logs')
     if model == 1:
         #PPO
-        model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,learning_rate=0.0003,use_sde= True,sde_sample_freq= 4,device='cpu')
+        #learning_rate=0.000005 clip_range=0.1
+        model = PPO('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,use_sde= True,sde_sample_freq= 4,device='cpu')
     elif model == 2:
         #AC2
         model = A2C('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path)
     elif model == 3:
-        model = SAC('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,device='cuda',buffer_size=2000000)
+        model = SAC('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,device='cuda',buffer_size=7000000)
+    elif model == 4:
+        #DDPG
+        model = DDPG('MultiInputPolicy', rl_env, verbose = 1, tensorboard_log = log_path,device='cuda',gamma=0.99,learning_rate=0.003)
     if train:
     #Create the reinfrocement learning model
         #,learning_rate=0.007,clip_range=0.4
-        model.load('Power_Only_SAC_V3')
-        model.learn(total_timesteps= 500000,progress_bar= True)
-        model.save('Power_Only_SAC_V4')
+        model = SAC.load('Power_Only_SAC_V2_3')
+        model.set_env(rl_env)
+        model.learn(total_timesteps= 1000000,progress_bar= True)
+        model.save('Power_Only_SAC_V2_4')
     else:
         #Test the trained model
-        model.load('Power_Only_SAC_V3')
+        model.load('Power_Only_SAC_V2_4')
         #model =  model.to('cuda') 
     #man = SimManager(10, 2400,spread_type=5,grid_supply=20)
         dummy = []
@@ -202,7 +207,7 @@ if multi == False:
             #print(data['avg_wait'],lent)
             #print(sim_data['Charge_Request'])
             
-            rl_env.man.plot_consumption(moving_amount=1)
+            rl_env.man.plot_consumption(moving_amount=100)
 
 #------------------------------------------------------------------
 names = ['100V2','50V2','0V2']
@@ -214,7 +219,7 @@ def rl_model(name,ratio):
     model = PPO('MultiInputPolicy', rl_env, verbose = 1)
 
 
-    model.learn(total_timesteps= 1500000,progress_bar= True)
+    model.learn(total_timesteps= 6000000,progress_bar= True)
     model.save(name)
 
 processes = []
