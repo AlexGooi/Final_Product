@@ -67,7 +67,7 @@ def calculate_distribution_params_at(df1_weekdays): #Gamma distribution is best 
     params_lognorm_at = stats.lognorm.fit(df1_sorted_at['TimeDiff'], floc=0)
     return params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at
 
-def calculate_available_service_time_distribution(df1_weekdays):
+def calculate_available_service_time_distribution(df1_weekdays): #Gamma distribution is best fit
     df1_sorted_ast = df1_weekdays.sort_values(by='UTCTransactionStart') #sort by arrival time
     df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60
     df1_sorted_ast = df1_sorted_ast.dropna(subset=['AvailableServiceTime'])
@@ -129,7 +129,9 @@ metrics_te = calculate_statistical_metrics(df1_sorted_te['TotalEnergy'], params_
 mean_arrival_time = gamma.mean(*params_gamma_at)
 
 
-print("Gamma distribution parameters:", params_gamma_at)
+print("Gamma distribution parameters Arrival time:", params_gamma_at)
+print("Lognorm distribution parameters Total Energt:", params_lognorm_te)
+print("Gamma distribution parameters Available Service Time:", params_gamma_ast)
 print("Metric Total Energy distributions", metrics_te)
 print("Metric Available Service Time distributions", metrics_ast)
 print("Metric Arrival Time distributions", metrics_at)
