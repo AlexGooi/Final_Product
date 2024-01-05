@@ -70,19 +70,18 @@ class Prepare:
                 )
                 #print("prepare")
             elif spread_type == 4:
-                arrival = stats.gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution
-                service_time = self.service_times.sample()
-                self.avg_wait_time.append(service_time)     
-                service_invert = 100.0 - service_time
-                #total_energy = stats.lognorm(*params_lognorm_te).rvs() #Total Energy Need based on the lognormal distribution
-                #available_service_time = stats.gamma(*params_gamma_ast).rvs()
+                arrival = stats.gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
+                max_wait_time = stats.gamma(*params_gamma_ast).rvs() # Generate max wait time using the Gamma distribution for available service time
+                total_energy = stats.lognorm(*params_lognorm_te).rvs() # Generate total energy demand using the Lognormal distribution
+                battery_level = max(0, 70 - total_energy)  # Ensure battery level is not negative
                 truck_data = Truck(
-                    battery=service_invert,
+                    battery=battery_level,
                     arrival_time=time,
                     total_time=0,
                     total_wait_time=0, 
                     desired_wait_time=0,
-                        
+                    desired_battery=random.randint(70, 100),  # Random desired battery level
+                    max_wait_time=max_wait_time    
                 )
             #Poison with a larger charging time 
             elif spread_type == 5:
