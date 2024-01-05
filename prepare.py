@@ -75,10 +75,9 @@ class Prepare:
             elif spread_type == 4:
                 arrival = stats.gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
                 max_wait_time = stats.lognorm(*params_lognorm_ast).rvs() # Generate max wait time using the Lognormal distribution for available service time
-                total_energy = stats.lognorm(*params_lognorm_te).rvs() # Generate total energy demand using the Lognormal distribution
-                battery_level_percentage = max(0, min(100, (total_energy / 70) * 100))
-                battery_level = 100 - battery_level_percentage
-                desired_battery = random.randint(int(battery_level), 100) # Set the desired battery level to be above the current battery level
+                total_energy = min(70, stats.lognorm(*params_lognorm_te).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
+                desired_battery = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
+                battery_level = 100 - desired_battery
                 truck_data = Truck(
                     battery=battery_level,
                     arrival_time=time,
@@ -88,6 +87,7 @@ class Prepare:
                     desired_battery=desired_battery,
                     max_wait_time=max_wait_time    
                 )
+                print("Truck Data for Spread Type 4:", truck_data.__dict__)
                 # Collecting data for calculations
                 battery_levels.append(truck_data.battery)
                 arrival_times.append(truck_data.arrival_time)
@@ -112,6 +112,7 @@ class Prepare:
                     desired_battery= desired_level,
                     max_wait_time = max_wait_time
                 )
+                print("Truck Data for Spread Type 5:", truck_data.__dict__)
                 # Collecting data for calculations
                 battery_levels.append(truck_data.battery)
                 arrival_times.append(truck_data.arrival_time)
