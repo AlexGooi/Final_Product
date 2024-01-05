@@ -70,49 +70,46 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
 # Function to distributions
 def calculate_distribution_params_at(df1): #Gamma distribution is best fit
     df1_sorted_at = df1.sort_values(by='UTCTransactionStart')
-    minute_frequency = df1_sorted_at.groupby('ArrivalMinute').size()  # Group by ArrivalMinute and calculate the frequency of arrivals per minute
-    average_frequency_per_minute = minute_frequency.groupby(level=0).mean()  # Calculating average frequency per minute over all days
-    time_diffs = average_frequency_per_minute.diff().dropna()  # Calculating the time difference between consecutive minutes
-    time_diffs = time_diffs.replace(0, 0.001)  # Replacing zeros with a very small number to avoid issues with fitting
-    params_gamma_at = stats.gamma.fit(time_diffs, floc=0)
-    params_expon_at = stats.expon.fit(time_diffs, floc=0)
-    params_lognorm_at = stats.lognorm.fit(time_diffs, floc=0)
-    return params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at
+    minute_frequency = df1_sorted_at.groupby('ArrivalMinute').size()
+    average_at_per_minute = minute_frequency.groupby(level=0).mean()
+    time_diffs_at = average_at_per_minute.diff().dropna()
+    time_diffs_at = time_diffs_at.clip(lower=0.001)  # Ensure all values are positive before fitting the gamma distribution
+    params_gamma_at = stats.gamma.fit(time_diffs_at, floc=0)
+    params_expon_at = stats.expon.fit(time_diffs_at, floc=0)
+    params_lognorm_at = stats.lognorm.fit(time_diffs_at, floc=0)
+    return params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at
 
 def calculate_available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
-    df1_sorted_ast = df1.sort_values(by='UTCTransactionStart') #sort by arrival time
-    df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60
-    minute_service_time = df1_sorted_ast.groupby('ArrivalMinute')['AvailableServiceTime'].mean()  # Group by ArrivalMinute and calculating the average available service time per minute
-    time_diffs_service = minute_service_time.diff().dropna()  # Calculating the time differences between consecutive minutes
-    time_diffs_service = time_diffs_service.replace(0, 0.001)  # Replace zeros with a very small number for fitting
-    params_gamma_ast = stats.gamma.fit(time_diffs_service, floc=0)
-    params_expon_ast = stats.expon.fit(time_diffs_service, floc=0)
-    params_lognorm_ast = stats.lognorm.fit(time_diffs_service, floc=0)
-    return params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast
+    df1_sorted_ast = df1.sort_values(by='UTCTransactionStart')  # Sort by transaction start time
+    df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60  # Calculate the available service time in minutes
+    avg_service_time_per_minute = df1_sorted_ast.groupby('ArrivalMinute')['AvailableServiceTime'].mean()  # Group by ArrivalMinute and calculate the average available service time per minute
+    params_gamma_ast = stats.gamma.fit(avg_service_time_per_minute, floc=0)
+    params_expon_ast = stats.expon.fit(avg_service_time_per_minute, floc=0)
+    params_lognorm_ast = stats.lognorm.fit(avg_service_time_per_minute, floc=0)
+    return params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute
 
 
 def calculate_distribution_params_te(df1): #lognormal distribution is best fit
-    df1_sorted_te = df1.sort_values(by='UTCTransactionStart') #TotalEnergy sorted on the arrivaltime of the EV
-    minute_total_energy = df1_sorted_te.groupby('ArrivalMinute')['TotalEnergy'].mean()  # Group by ArrivalMinute and calculating the average total energy per minute
-    time_diffs_energy = minute_total_energy.diff().dropna()  # Calculating the time differences between consecutive minutes
-    time_diffs_energy = time_diffs_energy.replace(0, 0.001)  # Replace zeros with a very small number for fitting
-    params_gamma_te = stats.gamma.fit(time_diffs_energy, floc=0)
-    params_expon_te = stats.expon.fit(time_diffs_energy, floc=0)
-    params_lognorm_te = stats.lognorm.fit(time_diffs_energy, floc=0)
-    return params_gamma_te, params_expon_te, params_lognorm_te, df1_sorted_te
+    df1_sorted_te = df1.sort_values(by='UTCTransactionStart')  # Sort by transaction start time
+    avg_total_energy_per_minute = df1_sorted_te.groupby('ArrivalMinute')['TotalEnergy'].mean()  # Group by ArrivalMinute and calculate the average total energy per minute
+    params_gamma_te = stats.gamma.fit(avg_total_energy_per_minute, floc=0)
+    params_expon_te = stats.expon.fit(avg_total_energy_per_minute, floc=0)
+    params_lognorm_te = stats.lognorm.fit(avg_total_energy_per_minute, floc=0)
+    return params_gamma_te, params_expon_te, params_lognorm_te, avg_total_energy_per_minute
 
 def calculate_statistical_metrics(data, params_gamma, params_expon, params_lognorm):
-    ks_stat_gamma, p_value_gamma = stats.kstest(data, 'gamma', params_gamma)
-    ks_stat_expon, p_value_expon = stats.kstest(data, 'expon', params_expon)
-    ks_stat_lognorm, p_value_lognorm = stats.kstest(data, 'lognorm', params_lognorm)
+    data_filtered = data[data > 0]  # Ensure data is positive for these distributions
+    ks_stat_gamma, p_value_gamma = stats.kstest(data_filtered, 'gamma', params_gamma)
+    ks_stat_expon, p_value_expon = stats.kstest(data_filtered, 'expon', params_expon)
+    ks_stat_lognorm, p_value_lognorm = stats.kstest(data_filtered, 'lognorm', params_lognorm)
 
-    aic_gamma = calculate_aic_bic(data, 'gamma', params_gamma)
-    aic_expon = calculate_aic_bic(data, 'expon', params_expon)
-    aic_lognorm = calculate_aic_bic(data, 'lognorm', params_lognorm)
+    aic_gamma = calculate_aic_bic(data_filtered, 'gamma', params_gamma)
+    aic_expon = calculate_aic_bic(data_filtered, 'expon', params_expon)
+    aic_lognorm = calculate_aic_bic(data_filtered, 'lognorm', params_lognorm)
 
-    bic_gamma = calculate_aic_bic(data, 'gamma', params_gamma, use_bic=True)
-    bic_expon = calculate_aic_bic(data, 'expon', params_expon, use_bic=True)
-    bic_lognorm = calculate_aic_bic(data, 'lognorm', params_lognorm, use_bic=True)
+    bic_gamma = calculate_aic_bic(data_filtered, 'gamma', params_gamma, use_bic=True)
+    bic_expon = calculate_aic_bic(data_filtered, 'expon', params_expon, use_bic=True)
+    bic_lognorm = calculate_aic_bic(data_filtered, 'lognorm', params_lognorm, use_bic=True)
 
     return {
         'gamma': {'ks_stat': ks_stat_gamma, 'p_value': p_value_gamma, 'aic': aic_gamma, 'bic': bic_gamma},
@@ -128,19 +125,20 @@ def calculate_aic_bic(data, dist_name, params, use_bic=False):
 
 
 #BEST FIT IS GAMMA FOR ARRIVAL TIME
-params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at = calculate_distribution_params_at(df1)
-metrics_at = calculate_statistical_metrics(df1_sorted_at['TimeDiff'], params_gamma_at, params_expon_at, params_lognorm_at)
+params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at = calculate_distribution_params_at(df1)
+metrics_at = calculate_statistical_metrics(time_diffs_at, params_gamma_at, params_expon_at, params_lognorm_at)
 
 #INCONCLUSIVE: after filtering <=70 better fit lognorm, otherwise gamma
-params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast = calculate_available_service_time_distribution(df1)
-metrics_ast = calculate_statistical_metrics(df1_sorted_ast['AvailableServiceTime'], params_gamma_ast, params_expon_ast, params_lognorm_ast)
+params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute = calculate_available_service_time_distribution(df1)
+metrics_ast = calculate_statistical_metrics(avg_service_time_per_minute, params_gamma_ast, params_expon_ast, params_lognorm_ast)
 
 #BEST FIT IS LOGNORMAL FOR TOTAL ENERGY
-params_gamma_te, params_expon_te, params_lognorm_te, df1_sorted_te = calculate_distribution_params_te(df1)
-metrics_te = calculate_statistical_metrics(df1_sorted_te['TotalEnergy'], params_gamma_te, params_expon_te, params_lognorm_te)
+params_gamma_te, params_expon_te, params_lognorm_te, avg_total_energy_per_minute = calculate_distribution_params_te(df1)
+metrics_te = calculate_statistical_metrics(avg_total_energy_per_minute, params_gamma_te, params_expon_te, params_lognorm_te)
 
 mean_arrival_time = gamma.mean(*params_gamma_at)
 
+# Correcting the statistical metrics calculation
 
 print("Gamma distribution parameters Arrival time:", params_gamma_at)
 print("Lognorm distribution parameters Total Energt:", params_lognorm_te)
@@ -149,9 +147,6 @@ print("Metric Total Energy distributions", metrics_te)
 print("Metric Available Service Time distributions", metrics_ast)
 print("Metric Arrival Time distributions", metrics_at)
 print("Mean Arrival Time (minutes):", mean_arrival_time)
-
-print("Max AvailableServiceTime:", df1_sorted_ast['AvailableServiceTime'].max())
-
 
 
 #save params_gamma LOOK! I AM A PICKLE
