@@ -76,10 +76,11 @@ class Prepare:
                 arrival = stats.gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
                 max_wait_time = stats.lognorm(*params_lognorm_ast).rvs() # Generate max wait time using the Lognormal distribution for available service time
                 total_energy = stats.lognorm(*params_lognorm_te).rvs() # Generate total energy demand using the Lognormal distribution
-                battery_level_percentage = max(0, min(100, (total_energy / 70) * 100)) # Assuming 70 kWh corresponds to 100% battery
-                desired_battery = random.randint(int(battery_level_percentage), 100)
+                battery_level_percentage = max(0, min(100, (total_energy / 70) * 100))
+                battery_level = 100 - battery_level_percentage
+                desired_battery = random.randint(int(battery_level), 100) # Set the desired battery level to be above the current battery level
                 truck_data = Truck(
-                    battery=battery_level_percentage,
+                    battery=battery_level,
                     arrival_time=time,
                     total_time=0,
                     total_wait_time=0, 

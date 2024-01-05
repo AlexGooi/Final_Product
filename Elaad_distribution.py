@@ -140,7 +140,7 @@ mean_arrival_time = gamma.mean(*params_gamma_at)
 
 print("Gamma distribution parameters Arrival time:", params_gamma_at)
 print("Lognorm distribution parameters Total Energt:", params_lognorm_te)
-print("Gamma distribution parameters Available Service Time:", params_gamma_ast)
+print("Lognorm distribution parameters Available Service Time:", params_lognorm_ast)
 print("Metric Total Energy distributions", metrics_te)
 print("Metric Available Service Time distributions", metrics_ast)
 print("Metric Arrival Time distributions", metrics_at)
