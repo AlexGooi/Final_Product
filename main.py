@@ -10,7 +10,7 @@ if __name__ == "__main__":
     man = SimManager(20, 1400,spread_type=5,grid_supply=70,)
     #for i in man.shedual.trucks:
         #print(i.arrival_time)
-    #print(man.shedual.trucks)
+    #print(man.shedual.trucks)c
     for i in range(1):       
         done = False
         #Make sure there is at least 1 car through the systme
