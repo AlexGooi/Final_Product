@@ -17,11 +17,6 @@ with open('params_gamma_ast.pkl', 'rb') as f:
 with open('params_lognorm_te.pkl', 'rb') as f:
     params_lognorm_te = pickle.load(f)
 
-arrival = stats.gamma(*params_gamma_at).rvs()
-
-
-
-print(arrival)
 
 class Prepare:
     '''Class that prepares a car arrival set'''
@@ -39,6 +34,14 @@ class Prepare:
         self.trucks = []
         time = 0
         first = False
+
+        # Lists to store individual truck data for min, max, and avg calculations
+        battery_levels = []
+        arrival_times = []
+        total_times = []
+        wait_times = []
+        desired_battery_levels = []
+        max_wait_times = []
 
         # Loop until a day is finished
         while time < self.total_time:
@@ -74,15 +77,23 @@ class Prepare:
                 max_wait_time = stats.gamma(*params_gamma_ast).rvs() # Generate max wait time using the Gamma distribution for available service time
                 total_energy = stats.lognorm(*params_lognorm_te).rvs() # Generate total energy demand using the Lognormal distribution
                 battery_level = max(0, 70 - total_energy)  # Ensure battery level is not negative
+                desired_battery = random.randint(int(battery_level), 70)  # Set the desired battery level to be between the current battery level and the maximum
                 truck_data = Truck(
                     battery=battery_level,
                     arrival_time=time,
                     total_time=0,
                     total_wait_time=0, 
                     desired_wait_time=0,
-                    desired_battery=random.randint(70, 100),  # Random desired battery level
+                    desired_battery=desired_battery,
                     max_wait_time=max_wait_time    
                 )
+                # Collecting data for calculations
+                battery_levels.append(truck_data.battery)
+                arrival_times.append(truck_data.arrival_time)
+                total_times.append(truck_data.total_time)
+                wait_times.append(truck_data.total_wait_time)
+                desired_battery_levels.append(truck_data.desired_battery)
+                max_wait_times.append(truck_data.max_wait_time)
             #Poison with a larger charging time 
             elif spread_type == 5:
                 arrival, service_time = self.poison()
@@ -99,7 +110,14 @@ class Prepare:
                     desired_wait_time=0,
                     desired_battery= desired_level,
                     max_wait_time = max_wait_time
-                )           
+                )
+                # Collecting data for calculations
+                battery_levels.append(truck_data.battery)
+                arrival_times.append(truck_data.arrival_time)
+                total_times.append(truck_data.total_time)
+                wait_times.append(truck_data.total_wait_time)
+                desired_battery_levels.append(truck_data.desired_battery)
+                max_wait_times.append(truck_data.max_wait_time)
             # Append the data to the list
             self.trucks.append(truck_data)
 
@@ -108,6 +126,16 @@ class Prepare:
                 time += arrival
             else:
                 first = True
+
+        # After all trucks are generated, calculate and print min, max, avg
+        print("Minimum, Average, and Maximum values for Spread Type", spread_type)
+        print("Min Battery Level:", min(battery_levels))
+        print("Avg Battery Level:", sum(battery_levels) / len(battery_levels))
+        print("Max Battery Level:", max(battery_levels))
+
+        print("Min Arrival Time:", min(arrival_times))
+        print("Avg Arrival Time:", sum(arrival_times) / len(arrival_times))
+        print("Max Arrival Time:", max(arrival_times))
 
     def poison(self):
         # Given parameters
