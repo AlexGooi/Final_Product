@@ -12,6 +12,9 @@ file_path2 = "CSV/open_metervalues.csv"
 df1 = pd.read_csv(file_path1, delimiter=';', decimal=',')
 df2 = pd.read_csv(file_path2, delimiter=';', decimal=',')
 
+# Data cleaning: Filter out rows from df1 where TotalEnergy is greater than 70
+df1 = df1[df1['TotalEnergy'] <= 70]
+
 # Convert columns to datetime
 df1['UTCTransactionStart'] = pd.to_datetime(df1['UTCTransactionStart'], format='%d/%m/%Y %H:%M')
 df1['UTCTransactionStop'] = pd.to_datetime(df1['UTCTransactionStop'], format='%d/%m/%Y %H:%M')
@@ -23,27 +26,35 @@ df1['ArrivalMinute'] = df1['UTCTransactionStart'].dt.hour * 60 + df1['UTCTransac
 df1['DayOfWeek'] = df1['UTCTransactionStart'].dt.dayofweek
 
 # Segregate df1 into weekdays and weekends
-df1_weekdays = df1[df1['DayOfWeek'].between(0, 4)]
-df1_weekends = df1[df1['DayOfWeek'].between(5, 6)]
+#df1_weekdays = df1[df1['DayOfWeek'].between(0, 4)]
+#df1_weekends = df1[df1['DayOfWeek'].between(5, 6)]
 
 
-#CONTINUE WITH WEEKDAYS ONLY
+##If data seggregated
 
 # Calculate the average number of arrivals per hour for weekdays
-average_hourly_arrivals_weekdays = df1_weekdays.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
-average_hourly_arrivals_weekdays['AverageArrivals'] /= len(df1_weekdays['DayOfWeek'].unique())
+#average_hourly_arrivals_weekdays = df1_weekdays.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
+#average_hourly_arrivals_weekdays['AverageArrivals'] /= len(df1_weekdays['DayOfWeek'].unique())
 
 # Average hourly departures for weekdays
-average_hourly_departures_weekdays = df1_weekdays.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
-average_hourly_departures_weekdays['AverageDepartures'] /= len(df1_weekdays['DayOfWeek'].unique())
+#average_hourly_departures_weekdays = df1_weekdays.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
+#average_hourly_departures_weekdays['AverageDepartures'] /= len(df1_weekdays['DayOfWeek'].unique())
 
 # Average hourly arrivals for weekends
-average_hourly_arrivals_weekends = df1_weekends.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
-average_hourly_arrivals_weekends['AverageArrivals'] /= len(df1_weekends['DayOfWeek'].unique())
+#average_hourly_arrivals_weekends = df1_weekends.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
+#average_hourly_arrivals_weekends['AverageArrivals'] /= len(df1_weekends['DayOfWeek'].unique())
 
 # Average hourly departures for weekends
-average_hourly_departures_weekends = df1_weekends.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
-average_hourly_departures_weekends['AverageDepartures'] /= len(df1_weekends['DayOfWeek'].unique())
+#average_hourly_departures_weekends = df1_weekends.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
+#average_hourly_departures_weekends['AverageDepartures'] /= len(df1_weekends['DayOfWeek'].unique())
+
+## Take full df1
+average_hourly_arrivals = df1.groupby('ArrivalHour').size().reset_index(name='AverageArrivals')
+average_hourly_arrivals['AverageArrivals'] /= len(df1['DayOfWeek'].unique())
+
+average_hourly_departures = df1.groupby('DepartureHour').size().reset_index(name='AverageDepartures')
+average_hourly_departures['AverageDepartures'] /= len(df1['DayOfWeek'].unique())
+
 
 # Function to plot the distribution
 def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=['#B9D531', '#EC008C']):
@@ -57,8 +68,8 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
     plt.tight_layout()
 
 # Function to distributions
-def calculate_distribution_params_at(df1_weekdays): #Gamma distribution is best fit
-    df1_sorted_at = df1_weekdays.sort_values(by='UTCTransactionStart')
+def calculate_distribution_params_at(df1): #Gamma distribution is best fit
+    df1_sorted_at = df1.sort_values(by='UTCTransactionStart')
     df1_sorted_at['TimeDiff'] = df1_sorted_at['UTCTransactionStart'].diff().dt.total_seconds() / 60
     df1_sorted_at = df1_sorted_at.dropna(subset=['TimeDiff'])
     df1_sorted_at['TimeDiff'] = np.where(df1_sorted_at['TimeDiff'] <= 0, 0.001, df1_sorted_at['TimeDiff']) # zeros to super small
@@ -67,8 +78,8 @@ def calculate_distribution_params_at(df1_weekdays): #Gamma distribution is best 
     params_lognorm_at = stats.lognorm.fit(df1_sorted_at['TimeDiff'], floc=0)
     return params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at
 
-def calculate_available_service_time_distribution(df1_weekdays): #Gamma distribution is best fit
-    df1_sorted_ast = df1_weekdays.sort_values(by='UTCTransactionStart') #sort by arrival time
+def calculate_available_service_time_distribution(df1): #Gamma distribution is best fit
+    df1_sorted_ast = df1.sort_values(by='UTCTransactionStart') #sort by arrival time
     df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60
     df1_sorted_ast = df1_sorted_ast.dropna(subset=['AvailableServiceTime'])
     df1_sorted_ast = df1_sorted_ast[df1_sorted_ast['AvailableServiceTime'] > 0]
@@ -79,8 +90,8 @@ def calculate_available_service_time_distribution(df1_weekdays): #Gamma distribu
     return params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast
 
 
-def calculate_distribution_params_te(df1_weekdays): #lognormal distribution is best fit
-    df1_sorted_te = df1_weekdays.sort_values(by='UTCTransactionStart') #TotalEnergy sorted on the arrivaltime of the EV
+def calculate_distribution_params_te(df1): #lognormal distribution is best fit
+    df1_sorted_te = df1.sort_values(by='UTCTransactionStart') #TotalEnergy sorted on the arrivaltime of the EV
     params_gamma_te = stats.gamma.fit(df1_sorted_te['TotalEnergy'], floc=0)
     params_expon_te = stats.expon.fit(df1_sorted_te['TotalEnergy'], floc=0)
     params_lognorm_te = stats.lognorm.fit(df1_sorted_te['TotalEnergy'], floc=0)
@@ -113,17 +124,17 @@ def calculate_aic_bic(data, dist_name, params, use_bic=False):
 
 
 #BEST FIT IS GAMMA FOR ARRIVAL TIME
-params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at = calculate_distribution_params_at(df1_weekdays)
+params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at = calculate_distribution_params_at(df1)
 metrics_at = calculate_statistical_metrics(df1_sorted_at['TimeDiff'], params_gamma_at, params_expon_at, params_lognorm_at)
 
 #INCONCLUSIVE: Based on the KS Statistic, the Log-Normal distribution seems to provide the closest fit to the empirical distribution. 
 #However, when considering AIC and BIC, the Gamma distribution is slightly favored due to its lower values, indicating a better balance of fit and simplicity.
 #Gamma distribution: balance of simplicity and fit. Log-Normal distribution: closest fit to empirical 
-params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast = calculate_available_service_time_distribution(df1_weekdays)
+params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast = calculate_available_service_time_distribution(df1)
 metrics_ast = calculate_statistical_metrics(df1_sorted_ast['AvailableServiceTime'], params_gamma_ast, params_expon_ast, params_lognorm_ast)
 
 #BEST FIT IS LOGNORMAL FOR TOTAL ENERGY
-params_gamma_te, params_expon_te, params_lognorm_te, df1_sorted_te = calculate_distribution_params_te(df1_weekdays)
+params_gamma_te, params_expon_te, params_lognorm_te, df1_sorted_te = calculate_distribution_params_te(df1)
 metrics_te = calculate_statistical_metrics(df1_sorted_te['TotalEnergy'], params_gamma_te, params_expon_te, params_lognorm_te)
 
 mean_arrival_time = gamma.mean(*params_gamma_at)
