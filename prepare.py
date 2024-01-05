@@ -11,8 +11,8 @@ import pickle
 with open('params_gamma_at.pkl', 'rb') as f:
     params_gamma_at = pickle.load(f)
 #Avalaible service time of best fitting distribution
-with open('params_gamma_ast.pkl', 'rb') as f:
-    params_gamma_ast = pickle.load(f)
+with open('params_lognorm_ast.pkl', 'rb') as f:
+    params_lognorm_ast = pickle.load(f)
 #Total Energy parameters of best fitting distribution
 with open('params_lognorm_te.pkl', 'rb') as f:
     params_lognorm_te = pickle.load(f)
@@ -74,12 +74,12 @@ class Prepare:
                 #print("prepare")
             elif spread_type == 4:
                 arrival = stats.gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
-                max_wait_time = stats.gamma(*params_gamma_ast).rvs() # Generate max wait time using the Gamma distribution for available service time
+                max_wait_time = stats.lognorm(*params_lognorm_ast).rvs() # Generate max wait time using the Lognormal distribution for available service time
                 total_energy = stats.lognorm(*params_lognorm_te).rvs() # Generate total energy demand using the Lognormal distribution
-                battery_level = max(0, 70 - total_energy)  # Ensure battery level is not negative
-                desired_battery = random.randint(int(battery_level), 70)  # Set the desired battery level to be between the current battery level and the maximum
+                battery_level_percentage = max(0, min(100, (total_energy / 70) * 100)) # Assuming 70 kWh corresponds to 100% battery
+                desired_battery = random.randint(int(battery_level_percentage), 100)
                 truck_data = Truck(
-                    battery=battery_level,
+                    battery=battery_level_percentage,
                     arrival_time=time,
                     total_time=0,
                     total_wait_time=0, 

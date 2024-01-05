@@ -78,7 +78,7 @@ def calculate_distribution_params_at(df1): #Gamma distribution is best fit
     params_lognorm_at = stats.lognorm.fit(df1_sorted_at['TimeDiff'], floc=0)
     return params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at
 
-def calculate_available_service_time_distribution(df1): #Gamma distribution is best fit
+def calculate_available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
     df1_sorted_ast = df1.sort_values(by='UTCTransactionStart') #sort by arrival time
     df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60
     df1_sorted_ast = df1_sorted_ast.dropna(subset=['AvailableServiceTime'])
@@ -127,9 +127,7 @@ def calculate_aic_bic(data, dist_name, params, use_bic=False):
 params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at = calculate_distribution_params_at(df1)
 metrics_at = calculate_statistical_metrics(df1_sorted_at['TimeDiff'], params_gamma_at, params_expon_at, params_lognorm_at)
 
-#INCONCLUSIVE: Based on the KS Statistic, the Log-Normal distribution seems to provide the closest fit to the empirical distribution. 
-#However, when considering AIC and BIC, the Gamma distribution is slightly favored due to its lower values, indicating a better balance of fit and simplicity.
-#Gamma distribution: balance of simplicity and fit. Log-Normal distribution: closest fit to empirical 
+#INCONCLUSIVE: after filtering <=70 better fit lognorm, otherwise gamma
 params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast = calculate_available_service_time_distribution(df1)
 metrics_ast = calculate_statistical_metrics(df1_sorted_ast['AvailableServiceTime'], params_gamma_ast, params_expon_ast, params_lognorm_ast)
 
@@ -158,6 +156,9 @@ with open('params_gamma_at.pkl', 'wb') as f:
 
 with open('params_gamma_ast.pkl', 'wb') as f:
     pickle.dump(params_gamma_ast, f)
+
+with open('params_lognorm_ast.pkl', 'wb') as f:
+    pickle.dump(params_lognorm_ast, f)
 
 with open('params_lognorm_te.pkl', 'wb') as f:
     pickle.dump(params_lognorm_te, f)
