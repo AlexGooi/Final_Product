@@ -139,7 +139,7 @@ class Prepare:
         print("Avg Arrival Time:", sum(arrival_times) / len(arrival_times))
         print("Max Arrival Time:", max(arrival_times))
 
-    def poison(self):
+    def poison(self): #function is called poison, but is actually an exponential function.
         # Given parameters
 
         # Generate inter-arrival times for the students (Poisson process)

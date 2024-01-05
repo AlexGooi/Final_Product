@@ -70,31 +70,35 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
 # Function to distributions
 def calculate_distribution_params_at(df1): #Gamma distribution is best fit
     df1_sorted_at = df1.sort_values(by='UTCTransactionStart')
-    df1_sorted_at['TimeDiff'] = df1_sorted_at['UTCTransactionStart'].diff().dt.total_seconds() / 60
-    df1_sorted_at = df1_sorted_at.dropna(subset=['TimeDiff'])
-    df1_sorted_at['TimeDiff'] = np.where(df1_sorted_at['TimeDiff'] <= 0, 0.001, df1_sorted_at['TimeDiff']) # zeros to super small
-    params_gamma_at = stats.gamma.fit(df1_sorted_at['TimeDiff'], floc=0)
-    params_expon_at = stats.expon.fit(df1_sorted_at['TimeDiff'], floc=0)
-    params_lognorm_at = stats.lognorm.fit(df1_sorted_at['TimeDiff'], floc=0)
+    minute_frequency = df1_sorted_at.groupby('ArrivalMinute').size()  # Group by ArrivalMinute and calculate the frequency of arrivals per minute
+    average_frequency_per_minute = minute_frequency.groupby(level=0).mean()  # Calculating average frequency per minute over all days
+    time_diffs = average_frequency_per_minute.diff().dropna()  # Calculating the time difference between consecutive minutes
+    time_diffs = time_diffs.replace(0, 0.001)  # Replacing zeros with a very small number to avoid issues with fitting
+    params_gamma_at = stats.gamma.fit(time_diffs, floc=0)
+    params_expon_at = stats.expon.fit(time_diffs, floc=0)
+    params_lognorm_at = stats.lognorm.fit(time_diffs, floc=0)
     return params_gamma_at, params_expon_at, params_lognorm_at, df1_sorted_at
 
 def calculate_available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
     df1_sorted_ast = df1.sort_values(by='UTCTransactionStart') #sort by arrival time
     df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60
-    df1_sorted_ast = df1_sorted_ast.dropna(subset=['AvailableServiceTime'])
-    df1_sorted_ast = df1_sorted_ast[df1_sorted_ast['AvailableServiceTime'] > 0]
-    params_gamma_ast = stats.gamma.fit(df1_sorted_ast['AvailableServiceTime'], floc=0)
-    params_expon_ast = stats.expon.fit(df1_sorted_ast['AvailableServiceTime'], floc=0)
-    params_lognorm_ast = stats.lognorm.fit(df1_sorted_ast['AvailableServiceTime'], floc=0)
-
+    minute_service_time = df1_sorted_ast.groupby('ArrivalMinute')['AvailableServiceTime'].mean()  # Group by ArrivalMinute and calculating the average available service time per minute
+    time_diffs_service = minute_service_time.diff().dropna()  # Calculating the time differences between consecutive minutes
+    time_diffs_service = time_diffs_service.replace(0, 0.001)  # Replace zeros with a very small number for fitting
+    params_gamma_ast = stats.gamma.fit(time_diffs_service, floc=0)
+    params_expon_ast = stats.expon.fit(time_diffs_service, floc=0)
+    params_lognorm_ast = stats.lognorm.fit(time_diffs_service, floc=0)
     return params_gamma_ast, params_expon_ast, params_lognorm_ast, df1_sorted_ast
 
 
 def calculate_distribution_params_te(df1): #lognormal distribution is best fit
     df1_sorted_te = df1.sort_values(by='UTCTransactionStart') #TotalEnergy sorted on the arrivaltime of the EV
-    params_gamma_te = stats.gamma.fit(df1_sorted_te['TotalEnergy'], floc=0)
-    params_expon_te = stats.expon.fit(df1_sorted_te['TotalEnergy'], floc=0)
-    params_lognorm_te = stats.lognorm.fit(df1_sorted_te['TotalEnergy'], floc=0)
+    minute_total_energy = df1_sorted_te.groupby('ArrivalMinute')['TotalEnergy'].mean()  # Group by ArrivalMinute and calculating the average total energy per minute
+    time_diffs_energy = minute_total_energy.diff().dropna()  # Calculating the time differences between consecutive minutes
+    time_diffs_energy = time_diffs_energy.replace(0, 0.001)  # Replace zeros with a very small number for fitting
+    params_gamma_te = stats.gamma.fit(time_diffs_energy, floc=0)
+    params_expon_te = stats.expon.fit(time_diffs_energy, floc=0)
+    params_lognorm_te = stats.lognorm.fit(time_diffs_energy, floc=0)
     return params_gamma_te, params_expon_te, params_lognorm_te, df1_sorted_te
 
 def calculate_statistical_metrics(data, params_gamma, params_expon, params_lognorm):
