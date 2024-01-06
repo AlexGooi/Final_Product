@@ -179,41 +179,82 @@ metrics_te_early_evening = statistical_metrics(avg_total_energy_per_minute_early
 params_gamma_te_late_evening_night, params_expon_te_late_evening_night, params_lognorm_te_late_evening_night, avg_total_energy_per_minute_late_evening_night = distribution_params_te(df1_late_evening_night)
 metrics_te_late_evening_night = statistical_metrics(avg_total_energy_per_minute_late_evening_night, params_gamma_te_late_evening_night, params_expon_te_late_evening_night, params_lognorm_te_late_evening_night)
 
-# Compile the results into a dictionary
+# Compiling results into a dictionary
 results = {
-    'Morning': { #FOR MORNINGS THE GAMMA DISTRIBUTION IS THE BEST FOR ALL
-        'AT_params': params_gamma_at_morning, 'AT_metrics': metrics_at_morning,
-        'AST_params': params_gamma_ast_morning, 'AST_metrics': metrics_ast_morning,
-        'TE_params': params_gamma_te_morning, 'TE_metrics': metrics_te_morning
+    'Morning': { #For Mornings: Lognorm is best for AT. Gamma is best for AST and TE.
+        'AT_params_gamma': params_gamma_at_morning,
+        'AT_params_expon': params_expon_at_morning,
+        'AT_params_lognorm': params_lognorm_at_morning,
+        'AT_metrics': metrics_at_morning,
+        'AST_params_gamma': params_gamma_ast_morning,
+        'AST_params_expon': params_expon_ast_morning,
+        'AST_params_lognorm': params_lognorm_ast_morning,
+        'AST_metrics': metrics_ast_morning,
+        'TE_params_gamma': params_gamma_te_morning,
+        'TE_params_expon': params_expon_te_morning,
+        'TE_params_lognorm': params_lognorm_te_morning,
+        'TE_metrics': metrics_te_morning
     },
-    'Afternoon': {
-        'AT_params': params_gamma_at_afternoon, 'AT_metrics': metrics_at_afternoon,
-        'AST_params': params_gamma_ast_afternoon, 'AST_metrics': metrics_ast_afternoon,
-        'TE_params': params_gamma_te_afternoon, 'TE_metrics': metrics_te_afternoon
+    'Afternoon': { #For Afternoons: Lognorm is best for AT. Gamma is best for AST and TE.
+        'AT_params_gamma': params_gamma_at_afternoon,
+        'AT_params_expon': params_expon_at_afternoon,
+        'AT_params_lognorm': params_lognorm_at_afternoon,
+        'AT_metrics': metrics_at_afternoon,
+        'AST_params_gamma': params_gamma_ast_afternoon,
+        'AST_params_expon': params_expon_ast_afternoon,
+        'AST_params_lognorm': params_lognorm_ast_afternoon,
+        'AST_metrics': metrics_ast_afternoon,
+        'TE_params_gamma': params_gamma_te_afternoon,
+        'TE_params_expon': params_expon_te_afternoon,
+        'TE_params_lognorm': params_lognorm_te_afternoon,
+        'TE_metrics': metrics_te_afternoon
     },
-    'Early Evening': {
-        'AT_params': params_gamma_at_early_evening, 'AT_metrics': metrics_at_early_evening,
-        'AST_params': params_gamma_ast_early_evening, 'AST_metrics': metrics_ast_early_evening,
-        'TE_params': params_gamma_te_early_evening, 'TE_metrics': metrics_te_early_evening
+    'Early Evening': { #For Early Evening: Gamma is best fit for AT and AST. Lognorm is best first for TE.
+        'AT_params_gamma': params_gamma_at_early_evening,
+        'AT_params_expon': params_expon_at_early_evening,
+        'AT_params_lognorm': params_lognorm_at_early_evening,
+        'AT_metrics': metrics_at_early_evening,
+        'AST_params_gamma': params_gamma_ast_early_evening,
+        'AST_params_expon': params_expon_ast_early_evening,
+        'AST_params_lognorm': params_lognorm_ast_early_evening,
+        'AST_metrics': metrics_ast_early_evening,
+        'TE_params_gamma': params_gamma_te_early_evening,
+        'TE_params_expon': params_expon_te_early_evening,
+        'TE_params_lognorm': params_lognorm_te_early_evening,
+        'TE_metrics': metrics_te_early_evening
     },
-    'Late Evening and Night': {
-        'AT_params': params_gamma_at_late_evening_night, 'AT_metrics': metrics_at_late_evening_night,
-        'AST_params': params_gamma_ast_late_evening_night, 'AST_metrics': metrics_ast_late_evening_night,
-        'TE_params': params_gamma_te_late_evening_night, 'TE_metrics': metrics_te_late_evening_night
+    'Late Evening and Night': { #For Late Evening and Night: Lognormal is the best fit for AT, Gamma is most suitable for TE. All poor fit for AST..Lognorm least poor.
+        'AT_params_gamma': params_gamma_at_late_evening_night,
+        'AT_params_expon': params_expon_at_late_evening_night,
+        'AT_params_lognorm': params_lognorm_at_late_evening_night,
+        'AT_metrics': metrics_at_late_evening_night,
+        'AST_params_gamma': params_gamma_ast_late_evening_night,
+        'AST_params_expon': params_expon_ast_late_evening_night,
+        'AST_params_lognorm': params_lognorm_ast_late_evening_night,
+        'AST_metrics': metrics_ast_late_evening_night,
+        'TE_params_gamma': params_gamma_te_late_evening_night,
+        'TE_params_expon': params_expon_te_late_evening_night,
+        'TE_params_lognorm': params_lognorm_te_late_evening_night,
+        'TE_metrics': metrics_te_late_evening_night
     }
 }
 
-# Print or display the results
+# Print the results
 for time_segment, segment_data in results.items():
     print(f"\n{time_segment} Segment:")
     for distribution_type in ['AT', 'AST', 'TE']:
         print(f"  {distribution_type}:")
-        params = segment_data[f'{distribution_type}_params']
-        metrics = segment_data[f'{distribution_type}_metrics']
-        print(f"    Params: {params}")
+        params_gamma = segment_data.get(f'{distribution_type}_params_gamma', 'N/A')
+        params_expon = segment_data.get(f'{distribution_type}_params_expon', 'N/A')
+        params_lognorm = segment_data.get(f'{distribution_type}_params_lognorm', 'N/A')
+        metrics = segment_data.get(f'{distribution_type}_metrics', {})
+        print(f"    Params - Gamma: {params_gamma}")
+        print(f"    Params - Expon: {params_expon}")
+        print(f"    Params - Lognorm: {params_lognorm}")
         print(f"    Metrics: ")
         for dist, metrics_data in metrics.items():
             print(f"      {dist.capitalize()}: KS Stat: {metrics_data['ks_stat']}, P-value: {metrics_data['p_value']}, AIC: {metrics_data['aic']}, BIC: {metrics_data['bic']}")
+
 
 #INCONCLUSIVE: after filtering <=70 better fit lognorm, otherwise gamma
 params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute = available_service_time_distribution(df1)
