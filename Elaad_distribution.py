@@ -181,7 +181,7 @@ metrics_te_late_evening_night = statistical_metrics(avg_total_energy_per_minute_
 
 # Compiling results into a dictionary
 results = {
-    'Morning': { #For Mornings: Lognorm is best for AT. Gamma is best for AST and TE.
+    'Morning': { #For Mornings: ALL Gamma distributions
         'AT_params_gamma': params_gamma_at_morning,
         'AT_params_expon': params_expon_at_morning,
         'AT_params_lognorm': params_lognorm_at_morning,
@@ -195,7 +195,7 @@ results = {
         'TE_params_lognorm': params_lognorm_te_morning,
         'TE_metrics': metrics_te_morning
     },
-    'Afternoon': { #For Afternoons: Lognorm is best for AT. Gamma is best for AST and TE.
+    'Afternoon': { #For Afternoons: All Gamma distributions
         'AT_params_gamma': params_gamma_at_afternoon,
         'AT_params_expon': params_expon_at_afternoon,
         'AT_params_lognorm': params_lognorm_at_afternoon,
@@ -209,7 +209,7 @@ results = {
         'TE_params_lognorm': params_lognorm_te_afternoon,
         'TE_metrics': metrics_te_afternoon
     },
-    'Early Evening': { #For Early Evening: Gamma is best fit for AT and AST. Lognorm is best first for TE.
+    'Early Evening': { #For Early Evening: All Gamma distributions
         'AT_params_gamma': params_gamma_at_early_evening,
         'AT_params_expon': params_expon_at_early_evening,
         'AT_params_lognorm': params_lognorm_at_early_evening,
@@ -223,7 +223,7 @@ results = {
         'TE_params_lognorm': params_lognorm_te_early_evening,
         'TE_metrics': metrics_te_early_evening
     },
-    'Late Evening and Night': { #For Late Evening and Night: Lognormal is the best fit for AT, Gamma is most suitable for TE. All poor fit for AST..Lognorm least poor.
+    'Late Evening and Night': { #For Late Evening and Night: Lognormal is the best fit for AT and AST. Gamma for TE.
         'AT_params_gamma': params_gamma_at_late_evening_night,
         'AT_params_expon': params_expon_at_late_evening_night,
         'AT_params_lognorm': params_lognorm_at_late_evening_night,
