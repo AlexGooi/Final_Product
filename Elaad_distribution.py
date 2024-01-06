@@ -195,7 +195,7 @@ results = {
         'TE_params_lognorm': params_lognorm_te_morning,
         'TE_metrics': metrics_te_morning
     },
-    'Afternoon': { #For Afternoons: All Gamma distributions
+    'Afternoon': { #For Afternoons: Lognorm fits AT the best. None fit the AST best, but Gamma is the closest. Lognormal best for TE.
         'AT_params_gamma': params_gamma_at_afternoon,
         'AT_params_expon': params_expon_at_afternoon,
         'AT_params_lognorm': params_lognorm_at_afternoon,
@@ -209,7 +209,7 @@ results = {
         'TE_params_lognorm': params_lognorm_te_afternoon,
         'TE_metrics': metrics_te_afternoon
     },
-    'Early Evening': { #For Early Evening: All Gamma distributions
+    'Early Evening': { #For Early Evening: Gamma has the best fit for AT and AST. Lognorm best for TE.
         'AT_params_gamma': params_gamma_at_early_evening,
         'AT_params_expon': params_expon_at_early_evening,
         'AT_params_lognorm': params_lognorm_at_early_evening,
@@ -223,7 +223,7 @@ results = {
         'TE_params_lognorm': params_lognorm_te_early_evening,
         'TE_metrics': metrics_te_early_evening
     },
-    'Late Evening and Night': { #For Late Evening and Night: Lognormal is the best fit for AT and AST. Gamma for TE.
+    'Late Evening and Night': { #For Late Evening and Night: Lognormal is the best fit for AT. All are poor for AST, but Lognorm least poor.Gamma best fit for TE.
         'AT_params_gamma': params_gamma_at_late_evening_night,
         'AT_params_expon': params_expon_at_late_evening_night,
         'AT_params_lognorm': params_lognorm_at_late_evening_night,
@@ -289,6 +289,16 @@ with open('params_lognorm_ast.pkl', 'wb') as f:
 
 with open('params_lognorm_te.pkl', 'wb') as f:
     pickle.dump(params_lognorm_te, f)
+
+#Time segments pickles
+with open('params_gamma_at_morning.pkl', 'wb') as f:
+    pickle.dump(params_gamma_at_morning, f)
+
+with open('params_gamma_ast_morning.pkl', 'wb') as f:
+    pickle.dump(params_gamma_ast_morning, f)
+
+with open('params_gamma_te_morning.pkl', 'wb') as f:
+    pickle.dump(params_gamma_te_morning, f)
 
 # # Generate points on the x axis suitable for the range of your data
 # x_gamma_at = np.linspace(start=0, stop=df1_sorted_at['TimeDiff'].max(), num=10000)
