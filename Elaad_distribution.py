@@ -167,47 +167,53 @@ params_gamma_ast_late_evening_night, params_expon_ast_late_evening_night, params
 metrics_ast_late_evening_night = statistical_metrics(avg_service_time_per_minute_late_evening_night, params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night)
 
 # Calculate Total Energy (TE) Demand distribution parameters and metrics per time segment
-params_gamma_at_morning, params_expon_at_morning, params_lognorm_at_morning, avg_total_energy_per_minute_morning = distribution_params_te(df1_morning)
-metrics_at_morning = statistical_metrics(avg_total_energy_per_minute_morning, params_gamma_at_morning, params_expon_at_morning, params_lognorm_at_morning)
+params_gamma_te_morning, params_expon_te_morning, params_lognorm_te_morning, avg_total_energy_per_minute_morning = distribution_params_te(df1_morning)
+metrics_te_morning = statistical_metrics(avg_total_energy_per_minute_morning, params_gamma_te_morning, params_expon_te_morning, params_lognorm_te_morning)
 
-params_gamma_at_afternoon, params_expon_at_afternoon, params_lognorm_at_afternoon, avg_total_energy_per_minute_afternoon = distribution_params_te(df1_afternoon)
-metrics_at_afternoon = statistical_metrics(avg_total_energy_per_minute_afternoon, params_gamma_at_afternoon, params_expon_at_afternoon, params_lognorm_at_afternoon)
+params_gamma_te_afternoon, params_expon_te_afternoon, params_lognorm_te_afternoon, avg_total_energy_per_minute_afternoon = distribution_params_te(df1_afternoon)
+metrics_te_afternoon = statistical_metrics(avg_total_energy_per_minute_afternoon, params_gamma_te_afternoon, params_expon_te_afternoon, params_lognorm_te_afternoon)
 
-params_gamma_at_early_evening, params_expon_at_early_evening, params_lognorm_at_early_evening, avg_total_energy_per_minute_early_evening = distribution_params_te(df1_early_evening)
-metrics_at_early_evening = statistical_metrics(avg_total_energy_per_minute_early_evening, params_gamma_at_early_evening, params_expon_at_early_evening, params_lognorm_at_early_evening)
+params_gamma_te_early_evening, params_expon_te_early_evening, params_lognorm_te_early_evening, avg_total_energy_per_minute_early_evening = distribution_params_te(df1_early_evening)
+metrics_te_early_evening = statistical_metrics(avg_total_energy_per_minute_early_evening, params_gamma_te_early_evening, params_expon_te_early_evening, params_lognorm_te_early_evening)
 
-params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night, avg_total_energy_per_minute_late_evening_night = distribution_params_te(df1_late_evening_night)
-metrics_at_late_evening_night = statistical_metrics(avg_total_energy_per_minute_late_evening_night, params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night)
+params_gamma_te_late_evening_night, params_expon_te_late_evening_night, params_lognorm_te_late_evening_night, avg_total_energy_per_minute_late_evening_night = distribution_params_te(df1_late_evening_night)
+metrics_te_late_evening_night = statistical_metrics(avg_total_energy_per_minute_late_evening_night, params_gamma_te_late_evening_night, params_expon_te_late_evening_night, params_lognorm_te_late_evening_night)
 
 # Compile the results into a dictionary
 results = {
-    'Morning': {
+    'Morning': { #FOR MORNINGS THE GAMMA DISTRIBUTION IS THE BEST FOR ALL
         'AT_params': params_gamma_at_morning, 'AT_metrics': metrics_at_morning,
         'AST_params': params_gamma_ast_morning, 'AST_metrics': metrics_ast_morning,
-        'TE_params': params_gamma_at_morning, 'TE_metrics': metrics_at_morning
+        'TE_params': params_gamma_te_morning, 'TE_metrics': metrics_te_morning
     },
     'Afternoon': {
         'AT_params': params_gamma_at_afternoon, 'AT_metrics': metrics_at_afternoon,
         'AST_params': params_gamma_ast_afternoon, 'AST_metrics': metrics_ast_afternoon,
-        'TE_params': params_gamma_at_afternoon, 'TE_metrics': metrics_at_afternoon
+        'TE_params': params_gamma_te_afternoon, 'TE_metrics': metrics_te_afternoon
     },
     'Early Evening': {
         'AT_params': params_gamma_at_early_evening, 'AT_metrics': metrics_at_early_evening,
         'AST_params': params_gamma_ast_early_evening, 'AST_metrics': metrics_ast_early_evening,
-        'TE_params': params_gamma_at_early_evening, 'TE_metrics': metrics_at_early_evening
+        'TE_params': params_gamma_te_early_evening, 'TE_metrics': metrics_te_early_evening
     },
     'Late Evening and Night': {
         'AT_params': params_gamma_at_late_evening_night, 'AT_metrics': metrics_at_late_evening_night,
         'AST_params': params_gamma_ast_late_evening_night, 'AST_metrics': metrics_ast_late_evening_night,
-        'TE_params': params_gamma_at_late_evening_night, 'TE_metrics': metrics_at_late_evening_night
+        'TE_params': params_gamma_te_late_evening_night, 'TE_metrics': metrics_te_late_evening_night
     }
 }
 
 # Print or display the results
-for time_segment, data in results.items():
-    print(f"\n{time_segment}:")
-    for key, value in data.items():
-        print(f"  {key}: {value}")
+for time_segment, segment_data in results.items():
+    print(f"\n{time_segment} Segment:")
+    for distribution_type in ['AT', 'AST', 'TE']:
+        print(f"  {distribution_type}:")
+        params = segment_data[f'{distribution_type}_params']
+        metrics = segment_data[f'{distribution_type}_metrics']
+        print(f"    Params: {params}")
+        print(f"    Metrics: ")
+        for dist, metrics_data in metrics.items():
+            print(f"      {dist.capitalize()}: KS Stat: {metrics_data['ks_stat']}, P-value: {metrics_data['p_value']}, AIC: {metrics_data['aic']}, BIC: {metrics_data['bic']}")
 
 #INCONCLUSIVE: after filtering <=70 better fit lognorm, otherwise gamma
 params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute = available_service_time_distribution(df1)
