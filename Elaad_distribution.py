@@ -29,6 +29,18 @@ df1['DayOfWeek'] = df1['UTCTransactionStart'].dt.dayofweek
 #df1_weekdays = df1[df1['DayOfWeek'].between(0, 4)]
 #df1_weekends = df1[df1['DayOfWeek'].between(5, 6)]
 
+# Define time segments
+morning_start, morning_end = 6, 10
+afternoon_start, afternoon_end = 10, 16
+early_evening_start, early_evening_end = 16, 20
+late_evening_start, late_evening_end = 20, 6  # Spans over midnight
+
+# Segregate data into different time periods
+df1_morning = df1[(df1['ArrivalHour'] >= morning_start) & (df1['ArrivalHour'] < morning_end)]
+df1_afternoon = df1[(df1['ArrivalHour'] >= afternoon_start) & (df1['ArrivalHour'] < afternoon_end)]
+df1_early_evening = df1[(df1['ArrivalHour'] >= early_evening_start) & (df1['ArrivalHour'] < early_evening_end)]
+df1_late_evening_night = df1[(df1['ArrivalHour'] >= late_evening_start) | (df1['ArrivalHour'] < late_evening_end)]
+
 
 ##If data seggregated
 
@@ -68,18 +80,18 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
     plt.tight_layout()
 
 # Function to distributions
-def calculate_distribution_params_at(df1): #Gamma distribution is best fit
+def distribution_params_at(df1): #Gamma distribution is best fit
     df1_sorted_at = df1.sort_values(by='UTCTransactionStart')
     minute_frequency = df1_sorted_at.groupby('ArrivalMinute').size()
-    average_at_per_minute = minute_frequency.groupby(level=0).mean()
-    time_diffs_at = average_at_per_minute.diff().dropna()
+    avg_at_per_minute = minute_frequency.groupby(level=0).mean()
+    time_diffs_at = avg_at_per_minute.diff().dropna()
     time_diffs_at = time_diffs_at.clip(lower=0.001)  # Ensure all values are positive before fitting the gamma distribution
     params_gamma_at = stats.gamma.fit(time_diffs_at, floc=0)
     params_expon_at = stats.expon.fit(time_diffs_at, floc=0)
     params_lognorm_at = stats.lognorm.fit(time_diffs_at, floc=0)
     return params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at
 
-def calculate_available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
+def available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
     df1_sorted_ast = df1.sort_values(by='UTCTransactionStart')  # Sort by transaction start time
     df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60  # Calculate the available service time in minutes
     avg_service_time_per_minute = df1_sorted_ast.groupby('ArrivalMinute')['AvailableServiceTime'].mean()  # Group by ArrivalMinute and calculate the average available service time per minute
@@ -89,7 +101,7 @@ def calculate_available_service_time_distribution(df1): #Lognorm distribution is
     return params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute
 
 
-def calculate_distribution_params_te(df1): #lognormal distribution is best fit
+def distribution_params_te(df1): #lognormal distribution is best fit
     df1_sorted_te = df1.sort_values(by='UTCTransactionStart')  # Sort by transaction start time
     avg_total_energy_per_minute = df1_sorted_te.groupby('ArrivalMinute')['TotalEnergy'].mean()  # Group by ArrivalMinute and calculate the average total energy per minute
     params_gamma_te = stats.gamma.fit(avg_total_energy_per_minute, floc=0)
@@ -97,7 +109,7 @@ def calculate_distribution_params_te(df1): #lognormal distribution is best fit
     params_lognorm_te = stats.lognorm.fit(avg_total_energy_per_minute, floc=0)
     return params_gamma_te, params_expon_te, params_lognorm_te, avg_total_energy_per_minute
 
-def calculate_statistical_metrics(data, params_gamma, params_expon, params_lognorm):
+def statistical_metrics(data, params_gamma, params_expon, params_lognorm):
     data_filtered = data[data > 0]  # Ensure data is positive for these distributions
     ks_stat_gamma, p_value_gamma = stats.kstest(data_filtered, 'gamma', params_gamma)
     ks_stat_expon, p_value_expon = stats.kstest(data_filtered, 'expon', params_expon)
@@ -124,17 +136,86 @@ def calculate_aic_bic(data, dist_name, params, use_bic=False):
     return -2 * llk + k * (np.log(len(data)) if use_bic else 2)
 
 
-#BEST FIT IS GAMMA FOR ARRIVAL TIME
-params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at = calculate_distribution_params_at(df1)
-metrics_at = calculate_statistical_metrics(time_diffs_at, params_gamma_at, params_expon_at, params_lognorm_at)
+#BEST FIT IS GAMMA FOR ARRIVAL TIME FULL Day
+params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at = distribution_params_at(df1)
+metrics_at = statistical_metrics(time_diffs_at, params_gamma_at, params_expon_at, params_lognorm_at)
+
+# Calculate interArrival Time (AT) distribution parameters and metrics per time segment
+params_gamma_at_morning, params_expon_at_morning, params_lognorm_at_morning, time_diffs_at_morning = distribution_params_at(df1_morning)
+metrics_at_morning = statistical_metrics(time_diffs_at_morning, params_gamma_at_morning, params_expon_at_morning, params_lognorm_at_morning)
+
+params_gamma_at_afternoon, params_expon_at_afternoon, params_lognorm_at_afternoon, time_diffs_at_afternoon = distribution_params_at(df1_afternoon)
+metrics_at_afternoon = statistical_metrics(time_diffs_at_afternoon, params_gamma_at_afternoon, params_expon_at_afternoon, params_lognorm_at_afternoon)
+
+params_gamma_at_early_evening, params_expon_at_early_evening, params_lognorm_at_early_evening, time_diffs_at_early_evening = distribution_params_at(df1_early_evening)
+metrics_at_early_evening = statistical_metrics(time_diffs_at_early_evening, params_gamma_at_early_evening, params_expon_at_early_evening, params_lognorm_at_early_evening)
+
+params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night, time_diffs_at_late_evening_night = distribution_params_at(df1_late_evening_night)
+metrics_at_late_evening_night = statistical_metrics(time_diffs_at_late_evening_night, params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night)
+
+# Calculate Available Service Time (AST) distribution parameters and metrics per time segment
+params_gamma_ast_morning, params_expon_ast_morning, params_lognorm_ast_morning, avg_service_time_per_minute_morning = available_service_time_distribution(df1_morning)
+metrics_ast_morning = statistical_metrics(avg_service_time_per_minute_morning, params_gamma_ast_morning, params_expon_ast_morning, params_lognorm_ast_morning)
+
+params_gamma_ast_afternoon, params_expon_ast_afternoon, params_lognorm_ast_afternoon, avg_service_time_per_afternoon = available_service_time_distribution(df1_afternoon)
+metrics_ast_afternoon = statistical_metrics(avg_service_time_per_afternoon, params_gamma_ast_afternoon, params_expon_ast_afternoon, params_lognorm_at_afternoon)
+
+params_gamma_ast_early_evening, params_expon_ast_early_evening, params_lognorm_ast_early_evening, avg_service_time_per_minute_early_evening = available_service_time_distribution(df1_early_evening)
+metrics_ast_early_evening = statistical_metrics(avg_service_time_per_minute_early_evening, params_gamma_ast_early_evening, params_expon_ast_early_evening, params_lognorm_ast_early_evening)
+
+params_gamma_ast_late_evening_night, params_expon_ast_late_evening_night, params_lognorm_ast_late_evening_night, avg_service_time_per_minute_late_evening_night = available_service_time_distribution(df1_late_evening_night)
+metrics_ast_late_evening_night = statistical_metrics(avg_service_time_per_minute_late_evening_night, params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night)
+
+# Calculate Total Energy (TE) Demand distribution parameters and metrics per time segment
+params_gamma_at_morning, params_expon_at_morning, params_lognorm_at_morning, avg_total_energy_per_minute_morning = distribution_params_te(df1_morning)
+metrics_at_morning = statistical_metrics(avg_total_energy_per_minute_morning, params_gamma_at_morning, params_expon_at_morning, params_lognorm_at_morning)
+
+params_gamma_at_afternoon, params_expon_at_afternoon, params_lognorm_at_afternoon, avg_total_energy_per_minute_afternoon = distribution_params_te(df1_afternoon)
+metrics_at_afternoon = statistical_metrics(avg_total_energy_per_minute_afternoon, params_gamma_at_afternoon, params_expon_at_afternoon, params_lognorm_at_afternoon)
+
+params_gamma_at_early_evening, params_expon_at_early_evening, params_lognorm_at_early_evening, avg_total_energy_per_minute_early_evening = distribution_params_te(df1_early_evening)
+metrics_at_early_evening = statistical_metrics(avg_total_energy_per_minute_early_evening, params_gamma_at_early_evening, params_expon_at_early_evening, params_lognorm_at_early_evening)
+
+params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night, avg_total_energy_per_minute_late_evening_night = distribution_params_te(df1_late_evening_night)
+metrics_at_late_evening_night = statistical_metrics(avg_total_energy_per_minute_late_evening_night, params_gamma_at_late_evening_night, params_expon_at_late_evening_night, params_lognorm_at_late_evening_night)
+
+# Compile the results into a dictionary
+results = {
+    'Morning': {
+        'AT_params': params_gamma_at_morning, 'AT_metrics': metrics_at_morning,
+        'AST_params': params_gamma_ast_morning, 'AST_metrics': metrics_ast_morning,
+        'TE_params': params_gamma_at_morning, 'TE_metrics': metrics_at_morning
+    },
+    'Afternoon': {
+        'AT_params': params_gamma_at_afternoon, 'AT_metrics': metrics_at_afternoon,
+        'AST_params': params_gamma_ast_afternoon, 'AST_metrics': metrics_ast_afternoon,
+        'TE_params': params_gamma_at_afternoon, 'TE_metrics': metrics_at_afternoon
+    },
+    'Early Evening': {
+        'AT_params': params_gamma_at_early_evening, 'AT_metrics': metrics_at_early_evening,
+        'AST_params': params_gamma_ast_early_evening, 'AST_metrics': metrics_ast_early_evening,
+        'TE_params': params_gamma_at_early_evening, 'TE_metrics': metrics_at_early_evening
+    },
+    'Late Evening and Night': {
+        'AT_params': params_gamma_at_late_evening_night, 'AT_metrics': metrics_at_late_evening_night,
+        'AST_params': params_gamma_ast_late_evening_night, 'AST_metrics': metrics_ast_late_evening_night,
+        'TE_params': params_gamma_at_late_evening_night, 'TE_metrics': metrics_at_late_evening_night
+    }
+}
+
+# Print or display the results
+for time_segment, data in results.items():
+    print(f"\n{time_segment}:")
+    for key, value in data.items():
+        print(f"  {key}: {value}")
 
 #INCONCLUSIVE: after filtering <=70 better fit lognorm, otherwise gamma
-params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute = calculate_available_service_time_distribution(df1)
-metrics_ast = calculate_statistical_metrics(avg_service_time_per_minute, params_gamma_ast, params_expon_ast, params_lognorm_ast)
+params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute = available_service_time_distribution(df1)
+metrics_ast = statistical_metrics(avg_service_time_per_minute, params_gamma_ast, params_expon_ast, params_lognorm_ast)
 
 #BEST FIT IS LOGNORMAL FOR TOTAL ENERGY
-params_gamma_te, params_expon_te, params_lognorm_te, avg_total_energy_per_minute = calculate_distribution_params_te(df1)
-metrics_te = calculate_statistical_metrics(avg_total_energy_per_minute, params_gamma_te, params_expon_te, params_lognorm_te)
+params_gamma_te, params_expon_te, params_lognorm_te, avg_total_energy_per_minute = distribution_params_te(df1)
+metrics_te = statistical_metrics(avg_total_energy_per_minute, params_gamma_te, params_expon_te, params_lognorm_te)
 
 mean_arrival_time = gamma.mean(*params_gamma_at)
 
