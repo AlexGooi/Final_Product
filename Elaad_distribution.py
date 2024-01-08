@@ -81,17 +81,28 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
 
 # Function to distributions
 def distribution_params_at(df1): #Gamma distribution is best fit
-    df1_sorted_at = df1.sort_values(by='UTCTransactionStart')
-    minute_frequency = df1_sorted_at.groupby('ArrivalMinute').size()  # per minute
-#    probability_of_arrival = (minute_frequency > 0).sum() / len(minute_frequency)        
-    non_zero_arrivals = minute_frequency[minute_frequency > 0] # Filter to include only minutes with at least one arrival
-    time_diffs_at = non_zero_arrivals.diff().dropna()
-    time_diffs_at = time_diffs_at.clip(lower=0.001)  # Avoid zero values
-    params_gamma_at = stats.gamma.fit(time_diffs_at, floc=0)
-    params_expon_at = stats.expon.fit(time_diffs_at, floc=0)
-    params_lognorm_at = stats.lognorm.fit(time_diffs_at, floc=0)
+    # Sort the dataframe by 'UTCTransactionStart' to ensure chronological order
+    df1_sorted = df1.sort_values(by='UTCTransactionStart')
 
-    return params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at #,probability_of_arrival,
+    # Calculate the differences in arrival times in minutes
+    df1_sorted['DiffMinutes'] = df1_sorted['UTCTransactionStart'].diff().dt.total_seconds() / 60
+    df1_sorted = df1_sorted.dropna()  # Drop the first row with a NaN diff
+
+    # Filter out any negative or zero differences, which may indicate data errors or same-minute arrivals
+    time_diffs_at = df1_sorted['DiffMinutes'][df1_sorted['DiffMinutes'] > 0]
+
+    # Replace zero and negative differences with a small positive value to avoid infinities in the fitting process
+    time_diffs_at = time_diffs_at.clip(lower=0.001)
+
+    # Check if there are sufficient data points to fit the distribution
+    if len(time_diffs_at) > 1:
+        params_gamma_at = stats.gamma.fit(time_diffs_at, floc=0)
+        params_expon_at = stats.expon.fit(time_diffs_at, floc=0)
+        params_lognorm_at = stats.lognorm.fit(time_diffs_at, floc=0)
+    else:
+        params_gamma_at = params_expon_at = params_lognorm_at = (np.nan, np.nan, np.nan)
+
+    return params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at
 
 
 def available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
