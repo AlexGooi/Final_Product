@@ -7,7 +7,7 @@ from limit import scale_value
 
 array = [10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10]
 if __name__ == "__main__":
-    man = SimManager(20, 1400,spread_type=5,grid_supply=70,)
+    man = SimManager(20, 1400,spread_type=6,grid_supply=70,)
     #for i in man.shedual.trucks:
         #print(i.arrival_time)
     #print(man.shedual.trucks)c

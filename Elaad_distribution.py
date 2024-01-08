@@ -82,14 +82,17 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
 # Function to distributions
 def distribution_params_at(df1): #Gamma distribution is best fit
     df1_sorted_at = df1.sort_values(by='UTCTransactionStart')
-    minute_frequency = df1_sorted_at.groupby('ArrivalMinute').size()
-    avg_at_per_minute = minute_frequency.groupby(level=0).mean()
-    time_diffs_at = avg_at_per_minute.diff().dropna()
-    time_diffs_at = time_diffs_at.clip(lower=0.001)  # Ensure all values are positive before fitting the gamma distribution
+    minute_frequency = df1_sorted_at.groupby('ArrivalMinute').size()  # per minute
+#    probability_of_arrival = (minute_frequency > 0).sum() / len(minute_frequency)        
+    non_zero_arrivals = minute_frequency[minute_frequency > 0] # Filter to include only minutes with at least one arrival
+    time_diffs_at = non_zero_arrivals.diff().dropna()
+    time_diffs_at = time_diffs_at.clip(lower=0.001)  # Avoid zero values
     params_gamma_at = stats.gamma.fit(time_diffs_at, floc=0)
     params_expon_at = stats.expon.fit(time_diffs_at, floc=0)
     params_lognorm_at = stats.lognorm.fit(time_diffs_at, floc=0)
-    return params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at
+
+    return params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at #,probability_of_arrival,
+
 
 def available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
     df1_sorted_ast = df1.sort_values(by='UTCTransactionStart')  # Sort by transaction start time
