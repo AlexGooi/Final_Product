@@ -81,28 +81,48 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
 
 # Function to distributions
 def distribution_params_at(df1): #Gamma distribution is best fit
-    # Sort the dataframe by 'UTCTransactionStart' to ensure chronological order
+    # Handle NaN values
+    df1 = df1.dropna(subset=['UTCTransactionStart'])
+
+    # Sort by transaction start time
     df1_sorted = df1.sort_values(by='UTCTransactionStart')
 
-    # Calculate the differences in arrival times in minutes
-    df1_sorted['DiffMinutes'] = df1_sorted['UTCTransactionStart'].diff().dt.total_seconds() / 60
-    df1_sorted = df1_sorted.dropna()  # Drop the first row with a NaN diff
+    # Calculate the interarrival times
+    df1_sorted['InterarrivalTime'] = df1_sorted['UTCTransactionStart'].diff().dt.total_seconds().div(60)  # in minutes
 
-    # Filter out any negative or zero differences, which may indicate data errors or same-minute arrivals
-    time_diffs_at = df1_sorted['DiffMinutes'][df1_sorted['DiffMinutes'] > 0]
+    # Handle zero values
+    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].replace(0, np.nan)
+    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].ffill()  # Forward fill
 
-    # Replace zero and negative differences with a small positive value to avoid infinities in the fitting process
-    time_diffs_at = time_diffs_at.clip(lower=0.001)
+    # Check and remove infinite values
+    df1_sorted = df1_sorted[np.isfinite(df1_sorted['InterarrivalTime'])]
 
-    # Check if there are sufficient data points to fit the distribution
-    if len(time_diffs_at) > 1:
+    # Clip the range
+    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].clip(upper=1440)
+
+    # Extract the date
+    df1_sorted['Date'] = df1_sorted['UTCTransactionStart'].dt.date
+
+    # Aggregate interarrival times by day
+    daily_interarrival = df1_sorted.groupby('Date')['InterarrivalTime'].apply(list)
+
+    # Combine for an average day
+    average_day_interarrival = np.concatenate(daily_interarrival.values)
+
+    # Log transformation for skewness
+    time_diffs_at = np.log(average_day_interarrival + 1)  # Add 1 to avoid log(0)
+
+    # Fit distributions to the log-transformed data
+    try:
         params_gamma_at = stats.gamma.fit(time_diffs_at, floc=0)
         params_expon_at = stats.expon.fit(time_diffs_at, floc=0)
         params_lognorm_at = stats.lognorm.fit(time_diffs_at, floc=0)
-    else:
-        params_gamma_at = params_expon_at = params_lognorm_at = (np.nan, np.nan, np.nan)
+    except ValueError as e:
+        print(f"Error fitting distributions: {e}")
+        return None
 
     return params_gamma_at, params_expon_at, params_lognorm_at, time_diffs_at
+
 
 
 def available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
