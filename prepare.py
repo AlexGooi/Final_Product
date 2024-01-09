@@ -18,15 +18,21 @@ with open('params_lognorm_te.pkl', 'rb') as f:
     params_lognorm_te = pickle.load(f)
 
 #Morning segment distributions
-#Arrival time parameters of best fitting distribution
+#Arrival time parameters of best fitting distributions
 with open('params_gamma_at_morning.pkl', 'rb') as f:
     params_gamma_at_morning = pickle.load(f)
-#Avalaible service time of best fitting distribution
+
+with open('params_lognorm_at_morning.pkl', 'rb') as f:
+    params_lognorm_at_morning = pickle.load(f)
+
 with open('params_gamma_ast_morning.pkl', 'rb') as f:
     params_gamma_ast_morning = pickle.load(f)
-#Total Energy parameters of best fitting distribution
+
 with open('params_gamma_te_morning.pkl', 'rb') as f:
     params_gamma_te_morning = pickle.load(f)
+
+with open('params_lognorm_te_morning.pkl', 'rb') as f:
+    params_lognorm_te_morning = pickle.load(f)
 
 
 class Prepare:
@@ -132,9 +138,9 @@ class Prepare:
                 desired_battery_levels.append(truck_data.desired_battery)
                 max_wait_times.append(truck_data.max_wait_time)
             elif spread_type == 6:
-                arrival = stats.gamma(*params_gamma_at_morning).rvs() # Generate arrival time using the Gamma distribution\
+                arrival = stats.lognorm(*params_lognorm_at_morning).rvs() # Generate arrival time using the Gamma distribution\
                 max_wait_time = stats.gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Lognormal distribution for available service time
-                total_energy = min(70, stats.gamma(*params_gamma_te_morning).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
+                total_energy = min(70, stats.lognorm(*params_lognorm_te_morning).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
                 desired_battery = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
                 battery_level = 100 - desired_battery
                 truck_data = Truck(

@@ -81,38 +81,18 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
 
 # Function to distributions
 def distribution_params_at(df1): #Gamma distribution is best fit
-    # Handle NaN values
-    df1 = df1.dropna(subset=['UTCTransactionStart'])
-
-    # Sort by transaction start time
-    df1_sorted = df1.sort_values(by='UTCTransactionStart')
-
-    # Calculate the interarrival times
-    df1_sorted['InterarrivalTime'] = df1_sorted['UTCTransactionStart'].diff().dt.total_seconds().div(60)  # in minutes
-
-    # Handle zero values
-    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].replace(0, np.nan)
+    df1 = df1.dropna(subset=['UTCTransactionStart'])      # Handle NaN values
+    df1_sorted = df1.sort_values(by='UTCTransactionStart')      # Sort by transaction start time
+    df1_sorted['InterarrivalTime'] = df1_sorted['UTCTransactionStart'].diff().dt.total_seconds().div(60)  #Calculate the interarrival times in minutes
+    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].replace(0, np.nan)      # Handle zero values
     df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].ffill()  # Forward fill
+    df1_sorted = df1_sorted[np.isfinite(df1_sorted['InterarrivalTime'])]        # Check and remove infinite values
+    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].clip(upper=1440)        # Clip the range
+    df1_sorted['Date'] = df1_sorted['UTCTransactionStart'].dt.date      # Extract the date
+    daily_interarrival = df1_sorted.groupby('Date')['InterarrivalTime'].apply(list)     # Aggregate interarrival times by day
+    average_day_interarrival = np.concatenate(daily_interarrival.values)        # Combine for an average day
+    time_diffs_at = np.log(average_day_interarrival + 1)  # Add 1 to avoid log(0)  Log transformation for skewness
 
-    # Check and remove infinite values
-    df1_sorted = df1_sorted[np.isfinite(df1_sorted['InterarrivalTime'])]
-
-    # Clip the range
-    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].clip(upper=1440)
-
-    # Extract the date
-    df1_sorted['Date'] = df1_sorted['UTCTransactionStart'].dt.date
-
-    # Aggregate interarrival times by day
-    daily_interarrival = df1_sorted.groupby('Date')['InterarrivalTime'].apply(list)
-
-    # Combine for an average day
-    average_day_interarrival = np.concatenate(daily_interarrival.values)
-
-    # Log transformation for skewness
-    time_diffs_at = np.log(average_day_interarrival + 1)  # Add 1 to avoid log(0)
-
-    # Fit distributions to the log-transformed data
     try:
         params_gamma_at = stats.gamma.fit(time_diffs_at, floc=0)
         params_expon_at = stats.expon.fit(time_diffs_at, floc=0)
@@ -126,21 +106,39 @@ def distribution_params_at(df1): #Gamma distribution is best fit
 
 
 def available_service_time_distribution(df1): #Lognorm distribution is best fit, only Gamma distribution is best fit before filtering.
-    df1_sorted_ast = df1.sort_values(by='UTCTransactionStart')  # Sort by transaction start time
-    df1_sorted_ast['AvailableServiceTime'] = (df1_sorted_ast['UTCTransactionStop'] - df1_sorted_ast['UTCTransactionStart']).dt.total_seconds() / 60  # Calculate the available service time in minutes
-    avg_service_time_per_minute = df1_sorted_ast.groupby('ArrivalMinute')['AvailableServiceTime'].mean()  # Group by ArrivalMinute and calculate the average available service time per minute
-    params_gamma_ast = stats.gamma.fit(avg_service_time_per_minute, floc=0)
-    params_expon_ast = stats.expon.fit(avg_service_time_per_minute, floc=0)
-    params_lognorm_ast = stats.lognorm.fit(avg_service_time_per_minute, floc=0)
+    df1 = df1.dropna(subset=['UTCTransactionStart', 'UTCTransactionStop'])      # Drop NaN values in relevant columns
+    df1_sorted = df1.sort_values(by='UTCTransactionStart')      # Sort by transaction start time
+    df1_sorted['AvailableServiceTime'] = (df1_sorted['UTCTransactionStop'] - df1_sorted['UTCTransactionStart']).dt.total_seconds() / 60     # Calculate the available service time in minutes
+    df1_sorted['AvailableServiceTime'] = df1_sorted['AvailableServiceTime'].clip(upper=1440)        # Handle outliers (e.g., extremely long service times)   Assuming service times longer than a day (1440 minutes) are outliers
+    df1_sorted = df1_sorted[np.isfinite(df1_sorted['AvailableServiceTime'])]        # Check and remove infinite values
+    avg_service_time_per_minute = df1_sorted.groupby(df1_sorted['UTCTransactionStart'].dt.minute)['AvailableServiceTime'].mean()    # Group by ArrivalMinute and calculate the average available service time per minute
+    
+    try:
+        params_gamma_ast = stats.gamma.fit(avg_service_time_per_minute, floc=0)
+        params_expon_ast = stats.expon.fit(avg_service_time_per_minute, floc=0)
+        params_lognorm_ast = stats.lognorm.fit(avg_service_time_per_minute, floc=0)
+    except ValueError as e:
+        print(f"Error fitting distributions: {e}")
+        return None
+
     return params_gamma_ast, params_expon_ast, params_lognorm_ast, avg_service_time_per_minute
 
 
 def distribution_params_te(df1): #lognormal distribution is best fit
-    df1_sorted_te = df1.sort_values(by='UTCTransactionStart')  # Sort by transaction start time
-    avg_total_energy_per_minute = df1_sorted_te.groupby('ArrivalMinute')['TotalEnergy'].mean()  # Group by ArrivalMinute and calculate the average total energy per minute
-    params_gamma_te = stats.gamma.fit(avg_total_energy_per_minute, floc=0)
-    params_expon_te = stats.expon.fit(avg_total_energy_per_minute, floc=0)
-    params_lognorm_te = stats.lognorm.fit(avg_total_energy_per_minute, floc=0)
+    df1 = df1.dropna(subset=['TotalEnergy', 'UTCTransactionStart']) # Drop NaN values in TotalEnergy column
+    df1_sorted = df1.sort_values(by='UTCTransactionStart')      # Sort by transaction start time
+    df1_sorted['TotalEnergy'] = df1_sorted['TotalEnergy'].clip(lower=1, upper=70)   # Clip the TotalEnergy values to be between 1 and 70 kW
+    df1_sorted['ArrivalMinute'] = df1_sorted['UTCTransactionStart'].dt.minute       # Group by ArrivalMinute and calculate the average total energy per minute
+    avg_total_energy_per_minute = df1_sorted.groupby('ArrivalMinute')['TotalEnergy'].mean()
+
+    try:
+        params_gamma_te = stats.gamma.fit(avg_total_energy_per_minute, floc=0)
+        params_expon_te = stats.expon.fit(avg_total_energy_per_minute, floc=0)
+        params_lognorm_te = stats.lognorm.fit(avg_total_energy_per_minute, floc=0)
+    except ValueError as e:
+        print(f"Error fitting distributions: {e}")
+        return None
+
     return params_gamma_te, params_expon_te, params_lognorm_te, avg_total_energy_per_minute
 
 def statistical_metrics(data, params_gamma, params_expon, params_lognorm):
@@ -328,11 +326,17 @@ with open('params_lognorm_te.pkl', 'wb') as f:
 with open('params_gamma_at_morning.pkl', 'wb') as f:
     pickle.dump(params_gamma_at_morning, f)
 
+with open('params_lognorm_at_morning.pkl', 'wb') as f:
+    pickle.dump(params_lognorm_at_morning, f)
+
 with open('params_gamma_ast_morning.pkl', 'wb') as f:
     pickle.dump(params_gamma_ast_morning, f)
 
 with open('params_gamma_te_morning.pkl', 'wb') as f:
     pickle.dump(params_gamma_te_morning, f)
+
+with open('params_lognorm_te_morning.pkl', 'wb') as f:
+    pickle.dump(params_lognorm_te_morning, f)
 
 # # Generate points on the x axis suitable for the range of your data
 # x_gamma_at = np.linspace(start=0, stop=df1_sorted_at['TimeDiff'].max(), num=10000)
