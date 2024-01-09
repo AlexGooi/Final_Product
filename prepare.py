@@ -1,7 +1,7 @@
 import random
 import salabim as sim
 import time
-import scipy.stats as stats
+from scipy.stats import gamma, lognorm, beta
 #from Elaad_distribution import calculate_distribution_params #now via pickle
 from data import Truck
 import pickle
@@ -90,9 +90,9 @@ class Prepare:
                 )
                 #print("prepare")
             elif spread_type == 4:
-                arrival = stats.gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
-                max_wait_time = stats.lognorm(*params_lognorm_ast).rvs() # Generate max wait time using the Lognormal distribution for available service time
-                total_energy = min(70, stats.lognorm(*params_lognorm_te).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
+                arrival = gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
+                max_wait_time = lognorm(*params_lognorm_ast).rvs() # Generate max wait time using the Lognormal distribution for available service time
+                total_energy = min(70, lognorm(*params_lognorm_te).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
                 desired_battery = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
                 battery_level = 100 - desired_battery
                 truck_data = Truck(
@@ -138,11 +138,15 @@ class Prepare:
                 desired_battery_levels.append(truck_data.desired_battery)
                 max_wait_times.append(truck_data.max_wait_time)
             elif spread_type == 6:
-                arrival = stats.lognorm(*params_lognorm_at_morning).rvs() # Generate arrival time using the Gamma distribution\
-                max_wait_time = stats.gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Lognormal distribution for available service time
-                total_energy = min(70, stats.lognorm(*params_lognorm_te_morning).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
-                desired_battery = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
+                arrival = lognorm(*params_lognorm_at_morning).rvs() # Generate arrival time using the Lognorm distribution\
+                max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Lognormal distribution for available service time
+    
+                alpha, beta_params = 2, 0.5  # # Beta distribution parameters for skew towards higher total energy Can be adjusted
+                beta_random = beta(alpha, beta_params).rvs()  # Generate a beta-distributed random value between 0 and 1, then scale to the desired range of 1 to 70
+                total_energy = 1 + beta_random * (70 - 1)
+                desired_battery = max(0, min(100, (total_energy / 70) * 100))   # Calculate desired battery level based on total energy demand
                 battery_level = 100 - desired_battery
+                
                 truck_data = Truck(
                     battery=battery_level,
                     arrival_time=time,
