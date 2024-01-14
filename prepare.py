@@ -138,16 +138,27 @@ class Prepare:
                 desired_battery_levels.append(truck_data.desired_battery)
                 max_wait_times.append(truck_data.max_wait_time)
             elif spread_type == 6:
-                arrival = lognorm(*params_lognorm_at_morning).rvs() # Generate arrival time using the Lognorm distribution
-                max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Lognormal distribution for available service time
-
-                #Total_energy distribution does not have enough variability, so a variability factor is used
-                baseline_energy = lognorm(*params_lognorm_te_morning).rvs()  # Generate baseline energy demand using lognormal distribution
                 alpha, beta_params = 2, 0.5  
                 variability_factor = beta(alpha, beta_params).rvs()  # Generate variability factor using beta distribution
-                weight_for_baseline = 0.1  # Adjust this weight to control the influence of the baseline. Since TE does not have enough variability, close to 0 is better for the simulation.
-                weight_for_variability = 1 - weight_for_baseline
-                total_energy = (weight_for_baseline * baseline_energy) + (weight_for_variability * variability_factor * 70) # Weighted sum of baseline energy and variability factor
+                
+                arrival = gamma(*params_gamma_at_morning).rvs() # Generate arrival time using the Gamma distribution
+                
+                #Available_Service_Time (AST) / Wait_time distribution mean is too high; distribution needs to be skewed
+                baseline_max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Gamma distribution for available service time
+                weight_for_baseline_wait_time = 0.5  # Adjust the weights to control the influence of the baseline
+                weight_for_variability_wait_time = 1 - weight_for_baseline_wait_time
+
+                max_wait_time = (weight_for_baseline_wait_time * baseline_max_wait_time) + \
+                    (weight_for_variability_wait_time * variability_factor * baseline_max_wait_time)
+                max_wait_time = max(15, min(max_wait_time, 1440))  # Ensure max_wait_time is within reasonable limits --> adjust min and max values as needed 1140 = 24h
+
+                #Total_energy distribution does not have enough variability, so a variability factor is used
+                baseline_total_energy = lognorm(*params_lognorm_te_morning).rvs()  # Generate baseline energy demand using lognormal distribution
+
+
+                weight_for_baseline_te = 0  # Adjust this weight to control the influence of the baseline. Since TE does not have enough variability, close to 0 is better for the simulation.
+                weight_for_variability_te = 1 - weight_for_baseline_te
+                total_energy = (weight_for_baseline_te * baseline_total_energy) + (weight_for_variability_te * variability_factor * 70) # Weighted sum of baseline energy and variability factor
                 total_energy = max(1, min(total_energy, 70))  # Ensure total energy is within min max of battery, in this case 1-70
                 desired_battery = max(0, min(100, (total_energy / 70) * 100))  # Calculate desired battery level based on total energy demand
 
