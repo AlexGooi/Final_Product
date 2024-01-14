@@ -5,6 +5,8 @@ from scipy.stats import gamma, lognorm, beta
 #from Elaad_distribution import calculate_distribution_params #now via pickle
 from data import Truck
 import pickle
+import matplotlib.pyplot as plt
+import numpy as np
 
 #PICKLEEEE
 #Arrival time parameters of best fitting distribution
@@ -144,13 +146,10 @@ class Prepare:
                 arrival = gamma(*params_gamma_at_morning).rvs() # Generate arrival time using the Gamma distribution
                 
                 #Available_Service_Time (AST) / Wait_time distribution mean is too high; distribution needs to be skewed
-                baseline_max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Gamma distribution for available service time
-                weight_for_baseline_wait_time = 0.5  # Adjust the weights to control the influence of the baseline
-                weight_for_variability_wait_time = 1 - weight_for_baseline_wait_time
-
-                max_wait_time = (weight_for_baseline_wait_time * baseline_max_wait_time) + \
-                    (weight_for_variability_wait_time * variability_factor * baseline_max_wait_time)
-                max_wait_time = max(15, min(max_wait_time, 1440))  # Ensure max_wait_time is within reasonable limits --> adjust min and max values as needed 1140 = 24h
+                baseline_max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Gamma distribution for AST
+                mean_shift = 100 # You can also add ' * variability_factor ' to Adjust the mean shift based on the variability factor
+                skewed_max_wait_time = baseline_max_wait_time - mean_shift  # Directly adjust the mean
+                max_wait_time = max(15, min(skewed_max_wait_time, 1440))
 
                 #Total_energy distribution does not have enough variability, so a variability factor is used
                 baseline_total_energy = lognorm(*params_lognorm_te_morning).rvs()  # Generate baseline energy demand using lognormal distribution
@@ -181,6 +180,7 @@ class Prepare:
                 wait_times.append(truck_data.total_wait_time)
                 desired_battery_levels.append(truck_data.desired_battery)
                 max_wait_times.append(truck_data.max_wait_time)
+
             # Append the data to the list
             self.trucks.append(truck_data)
 
