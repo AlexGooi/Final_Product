@@ -149,7 +149,7 @@ class Prepare:
                 baseline_max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Gamma distribution for AST
                 mean_shift = 100 # You can also add ' * variability_factor ' to Adjust the mean shift based on the variability factor
                 skewed_max_wait_time = baseline_max_wait_time - mean_shift  # Directly adjust the mean
-                max_wait_time = max(15, min(skewed_max_wait_time, 1440))
+                max_wait_time = max(15, min(skewed_max_wait_time, 1440)) #Set min. and max wait time. Min is now 15 min. and max is now 24 hours.
 
                 #Total_energy distribution does not have enough variability, so a variability factor is used
                 baseline_total_energy = lognorm(*params_lognorm_te_morning).rvs()  # Generate baseline energy demand using lognormal distribution
