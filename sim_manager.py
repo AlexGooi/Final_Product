@@ -390,4 +390,37 @@ class SimManager:
 
 
 #-------------------------------------------------------------------------------
- 
+
+    def plot_max_energy_usage_combined(self):
+        max_power_capacity_kW = 70  # Maximum power capacity in kilowatts
+
+        # Calculate the percentage of max energy used over time
+        max_energy_percentage = [(consumption / self.power_supply_o.max_power_from_grid) * 100 for consumption in self.power_consumption_trend]
+
+        # Assuming self.poles_desired_battery is recorded at each time step
+        # If the lengths of self.poles_desired_battery and max_energy_percentage are different,
+        # interpolate desired_battery_percentage to match the length of max_energy_percentage
+        if len(self.poles_desired_battery) != len(max_energy_percentage):
+            desired_battery_percentage = np.interp(
+                np.linspace(0, len(self.poles_desired_battery), len(max_energy_percentage)), 
+                np.arange(len(self.poles_desired_battery)), 
+                self.poles_desired_battery
+            )
+        else:
+            desired_battery_percentage = self.poles_desired_battery
+
+        time_array = list(range(1, len(max_energy_percentage) + 1))  # Time array
+
+        plt.figure(figsize=(10, 6))
+
+        # Plot the percentage of max energy used and desired battery charge
+        plt.plot(time_array, max_energy_percentage, label='Percentage of Max Energy Used', color='#696A6C')
+        plt.plot(time_array, desired_battery_percentage, label='Desired Battery Charge (%)', color='#EC008C')
+
+        # Adding labels and title
+        plt.xlabel('Time')
+        plt.ylabel('Percentage')
+        plt.title('Max Energy Usage and Desired Battery Charge Over Time')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
