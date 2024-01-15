@@ -343,3 +343,51 @@ class SimManager:
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.show()
+
+#-------------------------------------------------------------------------------
+    #This method plots the percentage of maximum energy used during the day
+
+    def plot_max_energy_usage(self):
+        max_power_capacity_kW = 70  # Define the maximum power capacity in kilowatts
+
+        # Calculate the percentage of max energy used over time and the actual power used in kW
+        max_energy_percentage = []
+        actual_power_used_kW = []
+        for consumption in self.power_consumption_trend:
+            percentage = (consumption / self.power_supply_o.max_power_from_grid) * 100
+            power_kW = (consumption / self.power_supply_o.max_power_from_grid) * max_power_capacity_kW
+            max_energy_percentage.append(percentage)
+            actual_power_used_kW.append(power_kW)
+
+        time_array = list(range(1, len(max_energy_percentage) + 1))  # Create a time array
+
+        # Calculate the total unused capacity in kW
+        total_unused_capacity_kW = sum([max_power_capacity_kW - power for power in actual_power_used_kW])
+
+        plt.figure(figsize=(10, 6))
+
+        # Plot the percentage of max energy used
+        plt.plot(time_array, max_energy_percentage, label='Percentage of Max Energy Used', color='#696A6C')
+
+        # Highlight the area between the power consumption curve and 100%
+        where_condition = [value < 100 for value in max_energy_percentage]
+        plt.fill_between(time_array, max_energy_percentage, 100, where=where_condition, color='#B9D531', alpha=0.5, label='Unused Capacity (%)')
+
+        # Line for maximum capacity (100%)
+        plt.axhline(y=100, color='#EC008C', linestyle='--', label='Maximum Capacity (100%)')
+
+        # Display the total unused capacity in kW on the plot
+        plt.text(x=max(time_array) * 0.6, y=50, s=f"Total Unused Capacity: {total_unused_capacity_kW:.2f} kW", fontsize=12, color='black')
+
+        # Adding labels and title
+        plt.xlabel('Time')
+        plt.ylabel('Percentage of Max Energy Used (%)')
+        plt.title('Percentage of Maximum Energy Used Over Time')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+
+
+#-------------------------------------------------------------------------------
+ 

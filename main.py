@@ -36,5 +36,6 @@ if __name__ == "__main__":
 
 
     man.plot_consumption(moving_amount= 10)
+    man.plot_max_energy_usage()
 
     
