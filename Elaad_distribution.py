@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-##import seaborn as sns 
+import seaborn as sns 
 import scipy.stats as stats
 from scipy.stats import gamma
 import numpy as np
@@ -82,11 +82,11 @@ def plot_average_distribution(arrival_df1, departure_df1, title_suffix, colors=[
 # Function to distributions
 def distribution_params_at(df1): #Gamma distribution is best fit
     df1 = df1.dropna(subset=['UTCTransactionStart'])      # Handle NaN values
-    df1_sorted = df1.sort_values(by='UTCTransactionStart')      # Sort by transaction start time
+    df1_sorted = df1.sort_values(by='UTCTransactionStart')      # Sort by transaction start time for chronical order
     df1_sorted['InterarrivalTime'] = df1_sorted['UTCTransactionStart'].diff().dt.total_seconds().div(60)  #Calculate the interarrival times in minutes
-    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].replace(0, np.nan)      # Handle zero values
-    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].ffill()  # Forward fill
-    df1_sorted = df1_sorted[np.isfinite(df1_sorted['InterarrivalTime'])]        # Check and remove infinite values
+    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].replace(0, np.nan)      # Handle zero values, cacn be immediate consecutive transactions 
+    df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].ffill()  # Forward fill to maintain continuity for immediate consecutive transactions
+    df1_sorted = df1_sorted[np.isfinite(df1_sorted['InterarrivalTime'])]        # Check and remove infinite values needed for statistical modelling
     df1_sorted['InterarrivalTime'] = df1_sorted['InterarrivalTime'].clip(upper=1440)        # Clip the range
     df1_sorted['Date'] = df1_sorted['UTCTransactionStart'].dt.date      # Extract the date
     daily_interarrival = df1_sorted.groupby('Date')['InterarrivalTime'].apply(list)     # Aggregate interarrival times by day
@@ -338,35 +338,29 @@ with open('params_gamma_te_morning.pkl', 'wb') as f:
 with open('params_lognorm_te_morning.pkl', 'wb') as f:
     pickle.dump(params_lognorm_te_morning, f)
 
-# # Generate points on the x axis suitable for the range of your data
-# x_gamma_at = np.linspace(start=0, stop=df1_sorted_at['TimeDiff'].max(), num=10000)
-# #x_expon_at = np.linspace(start=0, stop=df1_sorted_at['AvailableServiceTime'].max(), num=10000)
-# #x_lognorm_at = np.linspace(start=0, stop=df1_sorted_at['TotalEnergy'].max(), num=10000)
+#Plots
+    # Generate points on the x-axis for plotting the PDFs
+x_gamma_at_morning = np.linspace(start=0, stop=max(time_diffs_at_morning), num=1400)
+x_expon_at_morning = np.linspace(start=0, stop=max(time_diffs_at_morning), num=1400)
+x_lognorm_at_morning = np.linspace(start=0, stop=max(time_diffs_at_morning), num=1400)
 
+# Calculate the PDFs for the fitted distributions
+pdf_gamma_at_morning = stats.gamma.pdf(x_gamma_at_morning, *params_gamma_at_morning)
+pdf_expon_at_morning = stats.expon.pdf(x_expon_at_morning, *params_expon_at_morning)
+pdf_lognorm_at_morning = stats.lognorm.pdf(x_lognorm_at_morning, *params_lognorm_at_morning)
 
-# # Plot the histogram of the empirical data
-# plt.figure(figsize=(15, 6))
-# bin_size = 1  # The bin size can be adjusted to increase of decrease granularity
-# bins = int((df1_sorted_at['TimeDiff'].max() - df1_sorted_at['TimeDiff'].min()) / bin_size)
-# sns.histplot(df1_sorted_at['TimeDiff'], bins=bins, kde=False, stat='density', label='Empirical Data', color='#FBD5EC')
+# Plot the histogram of the empirical data
+plt.figure(figsize=(15, 6))
+sns.histplot(time_diffs_at_morning, bins=30, kde=False, stat='density', label='Empirical Data Morning segment', color='#FBD5EC')
 
-# # Plot the PDF of the fitted gamma distribution
-# pdf_gamma_at = stats.gamma.pdf(x_gamma_at, *params_gamma_at)
-# plt.plot(x_gamma_at, pdf_gamma_at, label='Fitted Gamma Distribution', color='#B9D531')
+# Plot the PDFs
+plt.plot(x_gamma_at_morning, pdf_gamma_at_morning, label='Fitted Gamma Distribution', color='#B9D531')
+plt.plot(x_expon_at_morning, pdf_expon_at_morning, label='Fitted Exponential Distribution', color='#EC008C')
+plt.plot(x_lognorm_at_morning, pdf_lognorm_at_morning, label='Fitted Lognormal Distribution', color='#696A6C')
 
-# # Plot the PDF of the fitted exponential distribution
-# pdf_expon_at = stats.expon.pdf(x_gamma_at, *params_expon_at)
-# plt.plot(x_gamma_at, pdf_expon_at, label='Fitted Exponential Distribution', color='#EC008C')
-
-# # Plot the PDF of the fitted exponential distribution
-# pdf_lognorm_at = stats.lognorm.pdf(x_gamma_at, *params_lognorm_at)
-# plt.plot(x_gamma_at, pdf_lognorm_at, label='Fitted Lognormal Distribution', color='#696A6C')
-
-
-# # Finalize the plot (same as before)
-# plt.xlabel('Time Difference Between Arrivals (Minutes)')
-# plt.ylabel('Density')
-# plt.title('Average Daily Frequency of Time Differences Between Arrivals with Fitted Distributions')
-# plt.xlim(0, df1_sorted_at['TimeDiff'].quantile(0.95))
-# plt.legend()
-# plt.show()
+# Finalize the plot
+plt.xlabel('Time Difference Between Arrivals (Log Transformed Minutes)')
+plt.ylabel('Density')
+plt.title('Distribution of EV Charging Station Arrivals in the Morning and Model Fits')
+plt.legend()
+plt.show()
