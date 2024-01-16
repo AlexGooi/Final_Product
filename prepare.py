@@ -159,9 +159,9 @@ class Prepare:
                 weight_for_variability_te = 1 - weight_for_baseline_te
                 total_energy = (weight_for_baseline_te * baseline_total_energy) + (weight_for_variability_te * variability_factor * 70) # Weighted sum of baseline energy and variability factor
                 total_energy = max(1, min(total_energy, 70))  # Ensure total energy is within min max of battery, in this case 1-70
-                desired_battery = max(0, min(100, (total_energy / 70) * 100))  # Calculate desired battery level based on total energy demand
+                battery_level = max(0, min(100, (total_energy / 70) * 100))  # Calculate desired battery level based on total energy demand
 
-                battery_level = 100 - desired_battery  # Ensure battery_level is logically consistent with desired_battery and with that total_energy
+                desired_battery = 100 - battery_level  # Ensure battery_level is logically consistent with desired_battery and with that total_energy
                 
                 truck_data = Truck(
                     battery=battery_level,
