@@ -95,8 +95,8 @@ class Prepare:
                 arrival = gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
                 max_wait_time = lognorm(*params_lognorm_ast).rvs() # Generate max wait time using the Lognormal distribution for available service time
                 total_energy = min(70, lognorm(*params_lognorm_te).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
-                desired_battery = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
-                battery_level = 100 - desired_battery
+                battery_level = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
+                desired_battery = 100 - battery_level
                 truck_data = Truck(
                     battery=battery_level,
                     arrival_time=time,
