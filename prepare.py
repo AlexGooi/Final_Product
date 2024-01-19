@@ -3,10 +3,9 @@ import salabim as sim
 import time
 from scipy.stats import gamma, lognorm, beta
 #from Elaad_distribution import calculate_distribution_params #now via pickle
+from limit import limit
 from data import Truck
 import pickle
-import matplotlib.pyplot as plt
-import numpy as np
 
 #PICKLEEEE
 #Arrival time parameters of best fitting distribution
@@ -95,18 +94,18 @@ class Prepare:
                 arrival = gamma(*params_gamma_at_morning).rvs() # Generate arrival time using the Gamma distribution\
                 max_wait_time = lognorm(*params_gamma_ast_morning).rvs() # Generate max wait time using the Lognormal distribution for available service time
                 total_energy = min(70, lognorm(*params_lognorm_te_morning).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
-                battery_level = 100-(max(0, min(100, (total_energy / 70) * 100))) # Calculate the desired battery level based on total energy demand
-                desired_battery = 100
+                battery_level = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
+                print(max_wait_time)
                 truck_data = Truck(
-                    battery=battery_level,
+                    battery= 100-battery_level,
                     arrival_time=time,
                     total_time=0,
                     total_wait_time=0, 
                     desired_wait_time=0,
-                    desired_battery=desired_battery,
-                    max_wait_time=max_wait_time    
+                    desired_battery=100,
+                    max_wait_time= max_wait_time *0.1
                 )
-                print("Truck Data for Spread Type 4:", truck_data.__dict__)
+                #print("Truck Data for Spread Type 4:", truck_data.__dict__)
                 # Collecting data for calculations
                 battery_levels.append(truck_data.battery)
                 arrival_times.append(truck_data.arrival_time)
@@ -131,7 +130,7 @@ class Prepare:
                     desired_battery= desired_level,
                     max_wait_time = max_wait_time
                 )
-                print("Truck Data for Spread Type 5:", truck_data.__dict__)
+                #print("Truck Data for Spread Type 5:", truck_data.__dict__)
                 # Collecting data for calculations
                 battery_levels.append(truck_data.battery)
                 arrival_times.append(truck_data.arrival_time)
@@ -142,63 +141,62 @@ class Prepare:
             elif spread_type == 6:
                 alpha, beta_params = 2, 0.5  
                 variability_factor = beta(alpha, beta_params).rvs()  # Generate variability factor using beta distribution
-                
+               
                 arrival = gamma(*params_gamma_at_morning).rvs() # Generate arrival time using the Gamma distribution
-                
+               
                 #Available_Service_Time (AST) / Wait_time distribution mean is too high; distribution needs to be skewed
                 baseline_max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Gamma distribution for AST
-                mean_shift = 100 # You can also add ' * variability_factor ' to Adjust the mean shift based on the variability factor
-                skewed_max_wait_time = baseline_max_wait_time - mean_shift  # Directly adjust the mean
-                max_wait_time = max(15, min(skewed_max_wait_time, 1440)) #Set min. and max wait time. Min is now 15 min. and max is now 24 hours.
-
+                skewed_max_wait_time = baseline_max_wait_time  # Directly adjust the mean
+                max_wait_time = max(15, min(skewed_max_wait_time, 500)) #Set min. and max wait time. Min is now 15 min. and max is now 24 hours.
+ 
                 #Total_energy distribution does not have enough variability, so a variability factor is used
-                baseline_total_energy = lognorm(*params_lognorm_te_morning).rvs()  # Generate baseline energy demand using lognormal distribution
-
-
-                weight_for_baseline_te = 0  # Adjust this weight to control the influence of the baseline. Since TE does not have enough variability, close to 0 is better for the simulation.
-                weight_for_variability_te = 1 - weight_for_baseline_te
-                total_energy = (weight_for_baseline_te * baseline_total_energy) + (weight_for_variability_te * variability_factor * 70) # Weighted sum of baseline energy and variability factor
+                total_energy = lognorm(*params_lognorm_te_morning).rvs()  # Generate baseline energy demand using lognormal distribution
+ 
+              # Adjust this weight to control the influence of the baseline. Since TE does not have enough variability, close to 0 is better for the simulation.
+                #weight_for_variability_te = 1 - weight_for_baseline_te
                 total_energy = max(1, min(total_energy, 70))  # Ensure total energy is within min max of battery, in this case 1-70
-                battery_level = 100-(max(0, min(100, (total_energy / 70) * 100)))  # Calculate desired battery level based on total energy demand
-
-                desired_battery = 100 #desired battery = 100
+                battery_level = (max(0, min(100, (total_energy / 70) * 100)))   # Calculate desired battery level based on total energy demand
+                battery_level = limit(0, (100- battery_level - random.randint(20,40)),100)
                 
+                desired_battery = 100 #desired battery = 100
+               # print(battery_level)
                 truck_data = Truck(
-                    battery=battery_level,
+                    battery= limit(0,battery_level *10,1000),
                     arrival_time=time,
                     total_time=0,
-                    total_wait_time=0, 
+                    total_wait_time=0,
                     desired_wait_time=0,
                     desired_battery=desired_battery,
                     max_wait_time=max_wait_time    
                 )
-                print("Truck Data for Spread Type 6:", truck_data.__dict__)
+                #print("Truck Data for Spread Type 6:", truck_data.__dict__)
                 # Collecting data for calculations
                 battery_levels.append(truck_data.battery)
                 arrival_times.append(truck_data.arrival_time)
                 total_times.append(truck_data.total_time)
                 wait_times.append(truck_data.total_wait_time)
                 desired_battery_levels.append(truck_data.desired_battery)
-                max_wait_times.append(truck_data.max_wait_time)
-
+                max_wait_times.append(limit(0,truck_data.max_wait_time,99999))
+                #print(max_wait_times)
             # Append the data to the list
             self.trucks.append(truck_data)
 
             # Determine the new arrival time
             if first == False:
-                time += arrival
+                time += limit(0,arrival,10000000)
             else:
                 first = True
 
         # After all trucks are generated, calculate and print min, max, avg
-        print("Minimum, Average, and Maximum values for Spread Type", spread_type)
-        print("Min Battery Level:", min(battery_levels))
-        print("Avg Battery Level:", sum(battery_levels) / len(battery_levels))
-        print("Max Battery Level:", max(battery_levels))
+        while False:
+            print("Minimum, Average, and Maximum values for Spread Type", spread_type)
+            print("Min Battery Level:", min(battery_levels))
+            print("Avg Battery Level:", sum(battery_levels) / len(battery_levels))
+            print("Max Battery Level:", max(battery_levels))
 
-        print("Min Arrival Time:", min(arrival_times))
-        print("Avg Arrival Time:", sum(arrival_times) / len(arrival_times))
-        print("Max Arrival Time:", max(arrival_times))
+            print("Min Arrival Time:", min(arrival_times))
+            print("Avg Arrival Time:", sum(arrival_times) / len(arrival_times))
+            print("Max Arrival Time:", max(arrival_times))
 
     def poison(self): #function is called poison, but is actually an exponential function.
         # Given parameters

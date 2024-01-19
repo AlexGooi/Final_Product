@@ -70,6 +70,7 @@ class PowerSupply(sim.Component):
         total_distributed = 0
         if len(self.power_used_list) != 0:
             available_per_station = self.max_power_from_grid / len(self.power_used_list)
+            #print(available_per_station,"sdsdsds")
             for i in self.power_used_list:  # Calculate the total amount
                 # Give the allowed power to the stations
                 i.max_power_consumption = limit(

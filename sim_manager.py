@@ -29,6 +29,7 @@ class SimManager:
         self.poles_battery_levels = []
         self.poles_desired_battery = []
         self.poles_time_remaining = []
+        self.sat = []
         self.poles_hold_back = 0
         self.charge_percentage = []
         self.power_consumption_trend = [] #List used for monitopring power consumption during the day
@@ -82,7 +83,8 @@ class SimManager:
             time_before_service=self.time_before_service,
             shedual=self.shedual.trucks,
             desired_times=self.desired_times,
-            difference_desired=self.difference_times
+            difference_desired=self.difference_times,
+            sat= self.sat
         )
 
     # This function runs the simmulation
@@ -93,7 +95,6 @@ class SimManager:
         # Start the simmulation
         self.env_sim.run(till=self.total_time)
         while len(self.waiting_room) != 0:
-            #print("empty")
             temp =self.waiting_room.pop()
             temp.in_loop = False
 
@@ -148,10 +149,19 @@ class SimManager:
         #Return data to the RL model (diffrence is in the reset)
 
         if self.old_time >= self.total_time:
+            #print(self.total_time)
             return True,sim_data
         else:
+            #print(self.old_time)
             return False,sim_data
         
+    def rl_reset_lite(self):
+        #Calculate the avarage charge percentage
+        avg = sum(self.charge_percentage) / len(self.charge_percentage)
+        self.charge_percentage.clear()
+        self.charge_percentage.append(avg)
+
+
     #This resets the current simmulation back to time 0
     def rl_reset(self):
         length = len(self.wait_times)
@@ -160,7 +170,7 @@ class SimManager:
         self.old_time = 0
         #self.__get_waitingline_data() 
         #Clear the charging poles
-
+        print("lengt =",len(self.shedual.trucks))
         while len(self.waiting_room) != 0:
                 #print("empty")
             temp =self.waiting_room.pop()
@@ -182,7 +192,7 @@ class SimManager:
                 all_Passive = True
 
             
-
+        print("Clear_Ok")
         #Clear all the data from the lists (to start with a clean simmulation)
         self.wait_times.clear()
         self.waiting_room.clear()
@@ -201,6 +211,9 @@ class SimManager:
    
         return sim_data, length
     
+    def reset_sat(self):
+        self.difference_times.clear()
+
     #This method is to make sure that there is at least 1 car through the systme
     def loop_first_car(self,action):
         done = False
@@ -222,7 +235,6 @@ class SimManager:
             max_tot = max(self.wait_times)
             max_diff = max(self.difference_times)
             min_dif = min(self.difference_times)  
-            #print(self.difference_times)
         else:
             avg_tot = 0
             min_tot = 0
@@ -252,7 +264,7 @@ class SimManager:
             except:
                self.poles_battery_levels[i] = 0 
             #Charging time remaining
-            self.poles_time_remaining[i] = pole.remaining_duration
+            self.poles_time_remaining[i] = pole.time_remaining
             try:                
                 self.poles_desired_battery[i] = pole.vehicle.desired_battery
             except: 
@@ -301,7 +313,6 @@ class SimManager:
         }
         #Return the dictonary
         return sim_values
-    print("dfdfd")
 #-------------------------------------------------------------------------------
     def reset_shedual(
         self,
@@ -325,7 +336,6 @@ class SimManager:
     def plot_consumption(self,moving_amount):
         x = []
         j = 1
-        print(type(self.power_consumption_trend))
         
         ya = moving_avarage(self.power_consumption_trend,moving_amount)
 
@@ -344,7 +354,6 @@ class SimManager:
         plt.ylabel("Y")
         plt.show()
 
-#-------------------------------------------------------------------------------
     #This method plots the percentage of maximum energy used during the day
 
     def plot_max_energy_usage(self):
@@ -375,6 +384,3 @@ class SimManager:
         plt.legend()
         plt.grid(True)
         plt.show()
-
-#-------------------------------------------------------------------------------
-
