@@ -92,11 +92,11 @@ class Prepare:
                 )
                 #print("prepare")
             elif spread_type == 4:
-                arrival = gamma(*params_gamma_at).rvs() # Generate arrival time using the Gamma distribution\
-                max_wait_time = lognorm(*params_lognorm_ast).rvs() # Generate max wait time using the Lognormal distribution for available service time
-                total_energy = min(70, lognorm(*params_lognorm_te).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
-                battery_level = max(0, min(100, (total_energy / 70) * 100)) # Calculate the desired battery level based on total energy demand
-                desired_battery = 100 - battery_level
+                arrival = gamma(*params_gamma_at_morning).rvs() # Generate arrival time using the Gamma distribution\
+                max_wait_time = lognorm(*params_gamma_ast_morning).rvs() # Generate max wait time using the Lognormal distribution for available service time
+                total_energy = min(70, lognorm(*params_lognorm_te_morning).rvs()) # Generate total energy demand and ensure it does not exceed 70 kWh
+                battery_level = 100-(max(0, min(100, (total_energy / 70) * 100))) # Calculate the desired battery level based on total energy demand
+                desired_battery = 100
                 truck_data = Truck(
                     battery=battery_level,
                     arrival_time=time,
@@ -159,9 +159,9 @@ class Prepare:
                 weight_for_variability_te = 1 - weight_for_baseline_te
                 total_energy = (weight_for_baseline_te * baseline_total_energy) + (weight_for_variability_te * variability_factor * 70) # Weighted sum of baseline energy and variability factor
                 total_energy = max(1, min(total_energy, 70))  # Ensure total energy is within min max of battery, in this case 1-70
-                battery_level = max(0, min(100, (total_energy / 70) * 100))  # Calculate desired battery level based on total energy demand
+                battery_level = 100-(max(0, min(100, (total_energy / 70) * 100)))  # Calculate desired battery level based on total energy demand
 
-                desired_battery = 100 - battery_level  # Ensure battery_level is logically consistent with desired_battery and with that total_energy
+                desired_battery = 100 #desired battery = 100
                 
                 truck_data = Truck(
                     battery=battery_level,
