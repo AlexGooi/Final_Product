@@ -14,6 +14,7 @@ class Customer(sim.Component):
         charge_percentage :List,
         time_before_service: List,
         diffrence_desired: List,
+        sat: List,
         battery_charge: np.int16,
         desired_battery : np.int16,
         max_wait_time,
@@ -35,6 +36,7 @@ class Customer(sim.Component):
         self.charge_percentage = charge_percentage
         self.time_before_service = time_before_service
         self.diffrence_desired = diffrence_desired
+        self.sat = sat
         self.mode.monitor(False)
         self.status.monitor(False)
         self.desired_wait_time = 0
@@ -46,10 +48,17 @@ class Customer(sim.Component):
         #print("Process starts = ", self.number)
         # Put the vehicle in the waiting room
         enterd = False
-        while enterd == False:
+        checked = False
+        while checked == False:
             try:
-                self.enter(self.waiting_room)
-                enterd = True
+                if len(self.waiting_room) == 0:
+                    self.enter(self.waiting_room)
+                    enterd = True
+                else:
+                    #print("leaving")
+                    pass
+                checked = True
+
             except Exception as e:
                 print("Exception = ",e)
                 #Clear the waiting 
@@ -59,10 +68,11 @@ class Customer(sim.Component):
                     self.hold(1)
         #print("Enter ")
         # Check if there is a station that is passive
-        for station in self.stations:
-            if station.ispassive():
-                station.activate()
-                #print("Activate_Station")
-                break  # activate at most one clerk
+        if enterd:                    
+            for station in self.stations:
+                if station.ispassive():
+                    station.activate()
+                    #print("Activate_Station")
+                    break  # activate at most one clerk
         #print("All stations active")
         self.passivate()

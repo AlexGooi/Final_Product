@@ -15,6 +15,7 @@ class CustomerGenerator(sim.Component):
         wait_times: List,
         total_times,
         desired_times,
+        sat: List,
         charge_percentage,
         time_before_service: List,
         difference_desired,
@@ -29,6 +30,7 @@ class CustomerGenerator(sim.Component):
         self.total_times = total_times
         self.desired_times = desired_times
         self.charge_percentage = charge_percentage
+        self.sat = sat
         self.time_before_service = time_before_service
         self.difference_desired = difference_desired
         self.shedual = shedual
@@ -57,6 +59,7 @@ class CustomerGenerator(sim.Component):
                         time_before_service=self.time_before_service, 
                         battery_charge=truck.battery,
                         desired_battery=truck.desired_battery,
+                        sat = self.sat,
                         max_wait_time=truck.max_wait_time,
                         number= number2,
                         total_times=self.total_times,
@@ -94,6 +97,7 @@ class CustomerGenerator(sim.Component):
                         time_before_service=self.time_before_service,
                         battery_charge=truck.battery,
                         desired_battery=truck.desired_battery,
+                        sat = self.sat,
                         max_wait_time=truck.max_wait_time,
                         number= number2,
                         total_times=self.total_times,
@@ -105,7 +109,10 @@ class CustomerGenerator(sim.Component):
                         #print(len(available_trucks))
                         number2 += 1
                 # Hold the simmulation until the next truck is sheduald
-                self.hold(truck.arrival_time - self.previous_Arrival)
+                try:
+                    self.hold(truck.arrival_time - self.previous_Arrival)
+                except:
+                    print("we have the panic in here",truck.arrival_time,self.previous_Arrival )
                 # Set the previous time
                 self.previous_Arrival = truck.arrival_time
             else:
