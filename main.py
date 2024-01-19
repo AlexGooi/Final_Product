@@ -52,7 +52,7 @@ if __name__ == "__main__":
             #print(sim_data['Charge_Request'])
 
 
-    man.plot_max_energy_usage()
+    man.plot_max_energy_usage(rl_data)
 
 
     

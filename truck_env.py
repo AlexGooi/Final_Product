@@ -200,7 +200,7 @@ if multi == False:
     else:
         
         #Test the trained model
-        model = PPO.load('ELAAD_Charging_V3_37')
+        model = PPO.load('ELAAD_Charging_V3_44')
         model.set_env(rl_env)
         #model =  model.to('cuda') 
     #man = SimManager(10, 2400,spread_type=5,grid_supply=20)

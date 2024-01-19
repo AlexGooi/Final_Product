@@ -6,7 +6,8 @@ from power_supply import PowerSupply
 from charging_station import ChargingStation
 from prepare import Prepare
 from matplotlib import pyplot as plt
-from scipy.interpolate import make_interp_spline
+import matplotlib.patches as patches
+from scipy.interpolate import make_interp_spline, interpolate
 from limit import moving_avarage
 #------------------------------------------------------------------------------
 class SimManager:
@@ -356,7 +357,7 @@ class SimManager:
 
     #This method plots the percentage of maximum energy used during the day
 
-    def plot_max_energy_usage(self):
+    def plot_max_energy_usage(self, rl_data):
         max_power_capacity_kW = 70  # Define the maximum power capacity in kilowatts
 
         max_energy_percentage = []  # Calculate the percentage of max energy used over time and the actual power used in kW
@@ -371,17 +372,33 @@ class SimManager:
 
         total_unused_capacity_kW = sum([max_power_capacity_kW - power for power in actual_power_used_kW])   # Calculate the total unused capacity in kW
 
+        avg_charge_percentage = round(rl_data['Avg_ChargePpercentage'], 2)
+        percentage_used = round(rl_data['Percentage_Used'], 2)
+##Original Second part plot
+
         plt.figure(figsize=(10, 6))
-        plt.plot(time_array, max_energy_percentage, label='Percentage of Max Energy Used', color='#696A6C') # Plot the percentage of max energy used
-        where_condition = [value < 100 for value in max_energy_percentage]  # Highlight the area between the power consumption curve and 100%
+        plt.plot(time_array, max_energy_percentage, label='Percentage of Max Energy Used', color='#696A6C')
+        where_condition = [value < 100 for value in max_energy_percentage]
         plt.fill_between(time_array, max_energy_percentage, 100, where=where_condition, color='#B9D531', alpha=0.5, label='Unused Capacity (%)')
-        plt.axhline(y=100, color='#EC008C', linestyle='--', label='Maximum Capacity (100%)')    # Line for maximum capacity (100%)
-        plt.text(x=max(time_array) * 0.6, y=85, s=f"Total Unused Capacity: {total_unused_capacity_kW:.2f} kW", fontsize=12, color='black')  # Display the total unused capacity in kW on the plot
+        plt.axhline(y=100, color='#EC008C', linestyle='--', label='Maximum Capacity (100%)')
+
+        # Create a text box for additional information in the lower right corner
+        text_box_str = (f"Avg Charge Percentage: {avg_charge_percentage}%\n"
+                        f"Percentage Used: {percentage_used}%\n"
+                        f"Total Unused Capacity: {total_unused_capacity_kW:.2f} kW")
+        props = dict(boxstyle='round', facecolor='#B9D531', alpha=0.5)
+        # Adjust the position of the text box slightly above where the legend will be
+        plt.text(0.95, 0.15, text_box_str, transform=plt.gca().transAxes, fontsize=12, 
+                verticalalignment='bottom', horizontalalignment='right', bbox=props)
+
+        # Setting the legend in the lower right corner
+        plt.legend(loc='lower right')
+
+        # ... [Rest of your existing code to finalize the plot] ...
 
         plt.xlabel('Time')
         plt.ylabel('Percentage of Max Energy Used (%)')
         plt.title('Percentage of Maximum Energy Used Over Time')
-        plt.legend()
         plt.grid(True)
-        plt.ylim(80, 102)  # Adjust the y-axis to start from 80% and go slightly above 100% for clarity
+        plt.ylim(80, 102)
         plt.show()
