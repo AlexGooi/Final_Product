@@ -376,11 +376,12 @@ class SimManager:
         where_condition = [value < 100 for value in max_energy_percentage]  # Highlight the area between the power consumption curve and 100%
         plt.fill_between(time_array, max_energy_percentage, 100, where=where_condition, color='#B9D531', alpha=0.5, label='Unused Capacity (%)')
         plt.axhline(y=100, color='#EC008C', linestyle='--', label='Maximum Capacity (100%)')    # Line for maximum capacity (100%)
-        plt.text(x=max(time_array) * 0.6, y=50, s=f"Total Unused Capacity: {total_unused_capacity_kW:.2f} kW", fontsize=12, color='black')  # Display the total unused capacity in kW on the plot
+        plt.text(x=max(time_array) * 0.6, y=85, s=f"Total Unused Capacity: {total_unused_capacity_kW:.2f} kW", fontsize=12, color='black')  # Display the total unused capacity in kW on the plot
 
         plt.xlabel('Time')
         plt.ylabel('Percentage of Max Energy Used (%)')
         plt.title('Percentage of Maximum Energy Used Over Time')
         plt.legend()
         plt.grid(True)
+        plt.ylim(80, 102)  # Adjust the y-axis to start from 80% and go slightly above 100% for clarity
         plt.show()
