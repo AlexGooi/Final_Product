@@ -362,18 +362,20 @@ class SimManager:
 
         max_energy_percentage = []  # Calculate the percentage of max energy used over time and the actual power used in kW
         actual_power_used_kW = []
+        percentage_used = []
         for consumption in self.power_consumption_trend:
             percentage = (consumption / self.power_supply_o.max_power_from_grid) * 100
+            percentage_used.append(percentage)
             power_kW = (consumption / self.power_supply_o.max_power_from_grid) * max_power_capacity_kW
             max_energy_percentage.append(percentage)
             actual_power_used_kW.append(power_kW)
 
         time_array = list(range(1, len(max_energy_percentage) + 1))  # Create a time array
-
-        total_unused_capacity_kW = sum([max_power_capacity_kW - power for power in actual_power_used_kW])   # Calculate the total unused capacity in kW
+        avg_percent_Used = round(sum(percentage_used) / len(percentage_used),2)
 
         avg_charge_percentage = round(rl_data['Avg_ChargePpercentage'], 2)
         percentage_used = round(rl_data['Percentage_Used'], 2)
+
 ##Original Second part plot
 
         plt.figure(figsize=(10, 6))
@@ -384,8 +386,7 @@ class SimManager:
 
         # Create a text box for additional information in the lower right corner
         text_box_str = (f"Avg Charge Percentage: {avg_charge_percentage}%\n"
-                        f"Percentage Used: {percentage_used}%\n"
-                        f"Total Unused Capacity: {total_unused_capacity_kW:.2f} kW")
+                        f"Percentage Used: {avg_percent_Used}%\n")
         props = dict(boxstyle='round', facecolor='#B9D531', alpha=0.5)
         # Adjust the position of the text box slightly above where the legend will be
         plt.text(0.95, 0.15, text_box_str, transform=plt.gca().transAxes, fontsize=12, 
@@ -400,5 +401,5 @@ class SimManager:
         plt.ylabel('Percentage of Max Energy Used (%)')
         plt.title('Percentage of Maximum Energy Used Over Time')
         plt.grid(True)
-        plt.ylim(80, 102)
+        plt.ylim(0, 102)
         plt.show()

@@ -45,8 +45,8 @@ class Train_Class(Env):
         self.extra_pos = 0
         self.extra_neg = 0
         self.neg_prog = 0
-        
-        self.man = SimManager(amount_of_poles, 50000,spread_type=6,grid_supply=grid_supply)
+        self.plot_data = 0
+        self.man = SimManager(amount_of_poles, 2400,spread_type=6,grid_supply=grid_supply)
         self.amount_of_poles = amount_of_poles
         #Create a dummy list of booleans (used for the reset function)
         self.dummy = []
@@ -92,6 +92,7 @@ class Train_Class(Env):
         if done:
             self.man.rl_reset_lite()
             self.counter_2 = 0
+            self.plot_data = rl_data
             #print(rl_data['Avg_ChargePpercentage'],action[0],action)
             #power_used_factor = rl_data['Percentage_Used'] * (rl_data["Avg_ChargePpercentage"] / 100)
             power_used_factor = self.__importance_ratio__(ratio=self.ratio,part1= rl_data['Percentage_Used'],part2=(rl_data["Avg_ChargePpercentage"]))
@@ -168,8 +169,8 @@ class Train_Class(Env):
             return -4
 
 model = 5
-#train = False
-train = True
+train = False
+#train = True
 multi = False
 
 if multi == False:
@@ -201,7 +202,7 @@ if multi == False:
         
         #Test the trained model
         model = PPO.load('ELAAD_Charging_V3_44')
-        model.set_env(rl_env)
+        model.set_env(rl_env) 
         #model =  model.to('cuda') 
     #man = SimManager(10, 2400,spread_type=5,grid_supply=20)
         dummy = []
@@ -218,6 +219,7 @@ if multi == False:
                 #print(actions)
                 amount = 0
                 
+                
                 data,temp1,done,temp2,temp3 = rl_env.step(actions[0])
                 amount += 1
                 print("action=",actions[0] )
@@ -228,8 +230,12 @@ if multi == False:
             #print("Charge_Percentage", data['Avg_ChargePpercentage'])
             #print(data['avg_wait'],lent)
             #print(sim_data['Charge_Request'])
-            
-            rl_env.man.plot_max_energy_usage()
+            action_scaled = []
+            for i in range(20):
+               action_scaled.append(np.int16(5))
+
+            temp,data = rl_env.man.rl_Run(action_scaled)
+            rl_env.man.plot_max_energy_usage(rl_data=data)
 
 #------------------------------------------------------------------
 names = ['100V2','50V2','0V2']
