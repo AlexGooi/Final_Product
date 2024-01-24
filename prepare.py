@@ -7,7 +7,7 @@ from limit import limit
 from data import Truck
 import pickle
 
-#PICKLEEEE
+#PICKLE RICKS
 #Arrival time parameters of best fitting distribution
 with open('params_gamma_at.pkl', 'rb') as f:
     params_gamma_at = pickle.load(f)
@@ -147,7 +147,7 @@ class Prepare:
                 #Available_Service_Time (AST) / Wait_time distribution mean is too high; distribution needs to be skewed
                 baseline_max_wait_time = gamma(*params_gamma_ast_morning).rvs() # Generate max wait time using the Gamma distribution for AST
                 skewed_max_wait_time = baseline_max_wait_time  # Directly adjust the mean
-                max_wait_time = max(15, min(skewed_max_wait_time, 500)) #Set min. and max wait time. Min is now 15 min. and max is now 24 hours.
+                max_wait_time = max(15, min(skewed_max_wait_time, 500)) #Set min. and max wait time. Min is now 15 min. and max is now ~8 hours.
  
                 #Total_energy distribution does not have enough variability, so a variability factor is used
                 total_energy = lognorm(*params_lognorm_te_morning).rvs()  # Generate baseline energy demand using lognormal distribution
