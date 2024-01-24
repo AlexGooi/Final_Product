@@ -25,7 +25,6 @@ class PowerSupply(sim.Component):
         # Calculate the amount of energy that is currently being used
         while True:
             #print(self.power_used_list)
-            """TODO variable total is unused"""
             total = 0
             # Select the charging strategy
             if self.strategy == 0:
@@ -49,7 +48,7 @@ class PowerSupply(sim.Component):
     def __distribute_power_simple(self):
         """This method resembles the simplest distribution (give max until it is out)"""
 
-        # Loop through all the power cinsumers
+        # Loop through all the power consumers
         total_distributed = 0
         
         for i in self.power_used_list:
@@ -63,14 +62,11 @@ class PowerSupply(sim.Component):
             total_distributed += i.max_power_consumption
 
     def __disrtibute_power_share_equal(self):
-        """This method resables a equal share to all the charging stations"""
-
+        #This method resables a equal share to all the charging stations
         # Loop through all the power consumers
-        """# TODO variable total_distributed is unused"""
         total_distributed = 0
         if len(self.power_used_list) != 0:
             available_per_station = self.max_power_from_grid / len(self.power_used_list)
-            #print(available_per_station,"sdsdsds")
             for i in self.power_used_list:  # Calculate the total amount
                 # Give the allowed power to the stations
                 i.max_power_consumption = limit(

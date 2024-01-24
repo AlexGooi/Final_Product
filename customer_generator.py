@@ -71,6 +71,7 @@ class CustomerGenerator(sim.Component):
                 else:
                     truck_found = False
                     #print(len(self.available_trucks),"length")
+                    #Check if there are unused truck objects (reuse objects to keep memory usage under control)
                     for cust in available_trucks:
                         #print(cust.status.get())
                         if cust.in_loop == False :
@@ -87,6 +88,7 @@ class CustomerGenerator(sim.Component):
                             #print("append",truck.arrival_time)
                             break
                     if truck_found == False: 
+                        #When no unused truck object is availalbe create a new object 
                         #print("new_Created")
                         customer = Customer(creation_time=self.env.now(),
                         waiting_room=self.waiting_room,

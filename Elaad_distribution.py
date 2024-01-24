@@ -6,6 +6,9 @@ from scipy.stats import gamma
 import numpy as np
 import pickle
 
+#This code creates a distribution based on the ELAAD data. This distribution is then used to create the shedual for the vehicles
+
+
 file_path1 = "CSV/open_transactions.csv"
 file_path2 = "CSV/open_metervalues.csv"
 

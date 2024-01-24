@@ -51,6 +51,7 @@ class Customer(sim.Component):
         checked = False
         while checked == False:
             try:
+                #Only 1 vehicle is allowed waiting in the waiting room
                 if len(self.waiting_room) == 0:
                     self.enter(self.waiting_room)
                     enterd = True
@@ -58,7 +59,7 @@ class Customer(sim.Component):
                     #print("leaving")
                     pass
                 checked = True
-
+            #When a new round has been started a vehicle could be stuck in the waiting line, when this is the case clear the waiting line
             except Exception as e:
                 print("Exception = ",e)
                 #Clear the waiting 
@@ -75,4 +76,5 @@ class Customer(sim.Component):
                     #print("Activate_Station")
                     break  # activate at most one clerk
         #print("All stations active")
+        #If no charging station is found, wait in the waiting line
         self.passivate()

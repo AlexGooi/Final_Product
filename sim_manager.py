@@ -130,6 +130,7 @@ class SimManager:
         return avg, int(min_o), int(max_o)
 
  #-------------------------------------------------------------------------------   
+    #This method is used to run the simmulation for 1 minute (used in RL)
     def rl_Run(self,power_input): 
         #Set the charging strategy to RL
         self.power_supply_o.strategy = 2
@@ -155,7 +156,7 @@ class SimManager:
         else:
             #print(self.old_time)
             return False,sim_data
-        
+    #Reset part of the enviroment (used in RL)
     def rl_reset_lite(self):
         #Calculate the avarage charge percentage
         avg = sum(self.charge_percentage) / len(self.charge_percentage)
@@ -176,7 +177,7 @@ class SimManager:
                 #print("empty")
             temp =self.waiting_room.pop()
             temp.in_loop = False        
-
+        #Clear all the charging stations
         for i in self.stations:
             #Wait until 
             found = True          
@@ -315,6 +316,7 @@ class SimManager:
         #Return the dictonary
         return sim_values
 #-------------------------------------------------------------------------------
+    #This method is used to create a new shedual
     def reset_shedual(
         self,
     ):  # This method resets the complete simmulation to its starting position

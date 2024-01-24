@@ -8,7 +8,7 @@ from limit import limit
 from limit import scale_value
 
 #-------------------------------------------------------------------------------
-
+#This is a test file to test multi process training (not used in the final product)
 
 class Train_Class(Env):
     def __init__(self, amount_of_poles,grid_supply):

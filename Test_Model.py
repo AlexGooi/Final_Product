@@ -18,7 +18,7 @@ from limit import scale_value
 from truck_env import Train_Class
 
 #-------------------------------------------------------------------------------
-
+#This is a test file (not used for final report!)
 
 class Train_Class2(Env):
     def __init__(self, amount_of_poles,grid_supply):

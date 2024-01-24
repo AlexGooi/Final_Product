@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 
-
+#Structs
 @dataclass
 class Truck:
     """Dataclass that holds the information regarding a truck"""

@@ -136,7 +136,6 @@ class ChargingStation(sim.Component):
             self.vehicle.total_time =(self.env.now() - self.vehicle.creation_time)
             #Append the total time to the loop
             #if self.vehicle.total_time < 0 and self.reset: 
-            #    print("WTFFFDF", self.env.now(), self.vehicle.creation_time)
             self.reset = False
             if self.vehicle.total_time >= 0: 
                 self.vehicle.total_times.append(self.vehicle.total_time)

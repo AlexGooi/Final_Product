@@ -12,7 +12,11 @@ from limit import limit
 from limit import scale_value
 
 #-------------------------------------------------------------------------------
+#This is used in the final report
 
+model = 5
+train = False
+multi = False
 
 class Train_Class(Env):
     def __init__(self, amount_of_poles,grid_supply,ratio):
@@ -58,6 +62,7 @@ class Train_Class(Env):
         #Setup the systme with 1 car already gone thorugh the system (this is done to make sure that the system is up and running)
         self.man.loop_first_car(self.action_scaled)
 
+    #Method to do a RL step
     def step(self, action):
         reward = 0
         info = {
@@ -139,7 +144,7 @@ class Train_Class(Env):
         observation['obs2'] = np.reshape(observation['obs2'], newshape=(1,1))
         return observation, info
 
-
+    #This method is used in the reward function and creates the balance between energy consumption and charge percentage
     def __importance_ratio__ (self,ratio,part1,part2):
         #Limit the ration internal
         ratio_i = limit(0,ratio,100)
@@ -149,6 +154,7 @@ class Train_Class(Env):
         #Return the combination of the 2 outputs
         return output1 + output2
     
+    #This is the reward function (this chaged during training)
     def __reward__(self,power_used_factor,total_distributed):
         #extra reward for energie use
         extra3 = limit(0, 70 -total_distributed,100) *3
@@ -168,10 +174,7 @@ class Train_Class(Env):
         else:
             return -4
 
-model = 5
-train = False
-#train = True
-multi = False
+
 
 if multi == False:
     #Create the reinfrocement learning model
@@ -217,8 +220,7 @@ if multi == False:
                 #print(observation['obs2'])
                 actions , __states =  model.predict(observation)
                 #print(actions)
-                amount = 0
-                
+                amount = 0              
                 
                 data,temp1,done,temp2,temp3 = rl_env.step(actions[0])
                 amount += 1
@@ -238,6 +240,7 @@ if multi == False:
             rl_env.man.plot_max_energy_usage(rl_data=data)
 
 #------------------------------------------------------------------
+#Multi processing test (not used in end product)
 names = ['100V2','50V2','0V2']
 ratios = [100,50,0]
 #Multi processing
