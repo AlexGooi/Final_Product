@@ -5,6 +5,7 @@ To use this project, please follow these steps
 
 1:
 Create the enviroment from the tetris_charge.yml file (we used mamba for this)
+
 2:
 The project can be run into 3 ways (uncontrolled, FCFS, Equal share, RL
 The configuration in this repository is supporting Eqaul share and RL out of the box
