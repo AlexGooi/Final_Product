@@ -1,3 +1,6 @@
+![TGC_tran](https://github.com/AlexGooi/Final_Product/assets/50239891/c82f5b12-ae91-40f2-85cf-7bb76cdf13c6)
+
+
 To use this project, please follow these steps
 
 1:
